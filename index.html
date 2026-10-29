@@ -109,6 +109,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
   <div class="hero">
     <h1>Engineering Project Hub</h1>
     <p>Choose a module to open</p>
+    <div class="note hide" id="cl-banner" style="margin-top:-8px">You're not signed in, so you're seeing only this browser's data. <a href="#" id="cl-goto">Sign in</a> to load and save the online data.</div>
   </div>
   <div class="grid">
     <a class="mod" href="#/equipment">
@@ -161,9 +162,9 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
   <div class="card cloud" style="margin-top:18px">
     <h2>☁️ Cloud sync (Supabase)</h2>
     <div id="cl-out">
-      <p class="sm" style="margin-top:0">Sign in with your admin account to save this app's data online and use it on any device.</p>
+      <p class="sm" style="margin-top:0">Sign in with your admin account (the same user ID and password as your products app) to load and save the online data on any device.</p>
       <div class="row">
-        <input type="text" id="cl-email" placeholder="Email" autocomplete="username" inputmode="email" style="flex:1;min-width:160px">
+        <input type="text" id="cl-email" placeholder="User ID (e.g. admin)" autocomplete="username" autocapitalize="none" spellcheck="false" style="flex:1;min-width:160px">
         <input type="password" id="cl-pass" placeholder="Password" autocomplete="current-password" style="flex:1;min-width:140px">
         <button class="b p" id="cl-in">Sign in</button>
       </div>
@@ -1056,7 +1057,7 @@ window.addEventListener('hashchange',route);
 /* ================= Cloud sync (Supabase) ================= */
 var SB_URL='https://bhfgwlkzkbwcwyoypwhy.supabase.co';
 var SB_KEY='sb_publishable_9YylflVQca-62NHsBKSTeA_GY896nj3';
-var CLOUD_TABLE='estimator_data',CLOUD_KEY='main';
+var CLOUD_TABLE='estimator_data',CLOUD_KEY='main',LOGIN_DOMAIN='product-card-maker.app';
 var sb=null,cUser=null,cTimer=null,cBusy=false,cAgain=false;
 function cStat(t,cls){$('#cl-status').textContent=t;$('#cl-dot').className='dot'+(cls?' '+cls:'')}
 function cWhen(iso){try{return new Date(iso).toLocaleString()}catch(e){return iso}}
@@ -1068,6 +1069,7 @@ function normalizeLoaded(o){
   S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();fixStages();applySizeDefaults();
 }
 function cloudUI(){
+  $('#cl-banner').classList.toggle('hide',!!cUser||!sb);
   $('#cl-out').classList.toggle('hide',!!cUser);
   $('#cl-inbox').classList.toggle('hide',!cUser);
   $('#cl-auto').checked=autoOn();
@@ -1130,13 +1132,16 @@ $('#cl-prevDrop').addEventListener('click',function(){try{localStorage.removeIte
 $('#cl-in').addEventListener('click',function(){
   if(!sb){toast('Cloud not available (offline?)');return}
   var em=$('#cl-email').value.trim(),pw=$('#cl-pass').value;
-  if(!em||!pw){toast('Enter email and password');return}
-  cStat('Signing in…','busy');
-  sb.auth.signInWithPassword({email:em,password:pw}).then(function(r){
-    if(r.error){cStat('Sign-in failed: '+r.error.message,'err');return}
+  if(!em||!pw){toast('Enter your user ID and password');return}
+  var email=em.indexOf('@')>=0?em:em.toLowerCase()+'@'+LOGIN_DOMAIN;
+  cStat('Signing in…','busy');$('#cl-in').disabled=true;
+  sb.auth.signInWithPassword({email:email,password:pw}).then(function(r){
+    $('#cl-in').disabled=false;
+    if(r.error){cStat(/invalid/i.test(r.error.message)?'Sign-in failed: wrong user ID or password':'Sign-in failed: '+r.error.message,'err');return}
     $('#cl-pass').value='';
-  });
+  },function(){$('#cl-in').disabled=false;cStat('Sign-in failed: no connection to the server','err')});
 });
+$('#cl-goto').addEventListener('click',function(e){e.preventDefault();$('#cl-email').scrollIntoView({behavior:'smooth',block:'center'});$('#cl-email').focus()});
 $('#cl-pass').addEventListener('keydown',function(e){if(e.key==='Enter')$('#cl-in').click()});
 $('#cl-outbtn').addEventListener('click',function(){if(sb)sb.auth.signOut()});
 $('#cl-save').addEventListener('click',function(){clearTimeout(cTimer);cloudPush(true)});
