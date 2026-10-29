@@ -108,7 +108,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
 <section id="home">
   <div class="hero">
     <h1>Engineering Project Hub</h1>
-    <p>Choose a module to open <span class="sm" style="float:right">Version 29 Oct 2026 · 15:35</span></p>
+    <p>Choose a module to open <span class="sm" style="float:right">Version 29 Oct 2026 · 15:40</span></p>
     <div class="note hide" id="cl-banner" style="margin-top:-8px">You're not signed in, so you're seeing only this browser's data. <a href="#" id="cl-goto">Sign in</a> to load and save the online data.</div>
   </div>
   <div class="grid">
@@ -171,7 +171,8 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
     </div>
     <div id="cl-inbox" class="hide">
       <div class="row">
-        <label class="chk"><input type="checkbox" id="cl-auto" checked> Auto-save changes to cloud</label>
+        <label class="chk" id="cl-autoBox"><input type="checkbox" id="cl-auto" checked> Auto-save changes to cloud</label>
+        <span class="sm" id="cl-autoOff">Auto-save is off — changes stay in this browser until you press “Save to cloud now”.</span>
         <button class="b p" id="cl-save">Save to cloud now</button>
         <button class="b" id="cl-load">Load from cloud</button>
         <button class="b" id="cl-outbtn" style="margin-left:auto">Sign out</button>
@@ -1061,7 +1062,8 @@ var CLOUD_TABLE='estimator_data',CLOUD_KEY='main',LOGIN_DOMAIN='product-card-mak
 var sb=null,cUser=null,cTimer=null,cBusy=false,cAgain=false;
 function cStat(t,cls){$('#cl-status').textContent=t;$('#cl-dot').className='dot'+(cls?' '+cls:'')}
 function cWhen(iso){try{return new Date(iso).toLocaleString()}catch(e){return iso}}
-function autoOn(){try{return localStorage.getItem(KEY+'.auto')!=='0'}catch(e){return true}}
+var AUTOSAVE_ENABLED=false; /* auto-save switched off until further notice */
+function autoOn(){if(!AUTOSAVE_ENABLED)return false;try{return localStorage.getItem(KEY+'.auto')!=='0'}catch(e){return true}}
 function hasData(){return S.eq.length||S.rows.length||S.deliv.length}
 function normalizeLoaded(o){
   var mx=0;(o.eq||[]).concat(o.rows||[],o.deliv||[]).forEach(function(x){if(x.id>mx)mx=x.id});
@@ -1073,8 +1075,10 @@ function cloudUI(){
   $('#cl-out').classList.toggle('hide',!!cUser);
   $('#cl-inbox').classList.toggle('hide',!cUser);
   $('#cl-auto').checked=autoOn();
+  $('#cl-autoBox').classList.toggle('hide',!AUTOSAVE_ENABLED);$('#cl-autoOff').classList.toggle('hide',AUTOSAVE_ENABLED);
 }
 window.cloudQueue=function(){
+  if(sb&&cUser&&!autoOn()){cStat('Changes not saved to cloud yet — press “Save to cloud now”','busy');return}
   if(!sb||!cUser||!autoOn())return;
   clearTimeout(cTimer);cStat('Unsaved changes…','busy');
   cTimer=setTimeout(cloudPush,1500);
@@ -1100,12 +1104,15 @@ function cloudPull(ask){
     if(r.error){cStat('Cloud read failed: '+r.error.message,'err');return}
     var v=r.data&&r.data.value;
     if(!v||!v.types||!v.eq||!v.rows){
+      if(!autoOn()){cStat('No cloud copy yet — press “Save to cloud now” to upload this browser\u2019s data','busy');return}
       cStat('No cloud copy yet — uploading this browser\u2019s data…','busy');
       return cloudPush();
     }
     var cloudT=r.data.updated_at, localT=S.savedAt||'';
     /* cloud is newer (or this browser is empty) -> just load it; only ask when this browser has newer, unsynced changes */
     var take=!ask||!hasData()||!localT||new Date(cloudT)>=new Date(localT);
+    if(!take&&!autoOn()){
+      cStat('This browser has changes newer than the cloud copy (saved '+cWhen(cloudT)+'). Nothing was uploaded — use “Save to cloud now” or “Load from cloud”.','busy');return}
     if(!take){
       take=confirm('This browser has changes (saved '+cWhen(localT)+') that are NEWER than the cloud copy (saved '+cWhen(cloudT)+').\n\nOK = upload this browser\u2019s data to the cloud\nCancel = discard them and load the cloud copy');
       if(take)return cloudPush(true);
