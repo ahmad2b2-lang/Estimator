@@ -71,6 +71,10 @@ td.x{padding:0 4px;text-align:center}
 td.x button{border:0;background:none;font-size:15px;padding:4px 5px;color:#a12a2a}
 td.x button.cp{color:var(--acc)}
 .warn{color:#b4561b}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff}
+.seg button{border:0;background:#fff;color:var(--ink);padding:7px 13px;font:inherit;font-size:14px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--acc);color:#fff}
 .cloud{border-color:#c9d8f2}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#b6bfc9;margin-right:6px;vertical-align:middle}
 .dot.on{background:#1d7a46}.dot.busy{background:#d79b1f}.dot.err{background:#b42a2a}
@@ -111,7 +115,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
       <div class="step">Step 1 · Setup</div>
       <div class="ico">🧰</div>
       <div class="mt">Equipment Types Module</div>
-      <div class="md">Define each equipment type once, with the number of drawings of each drawing type needed for ONE unit.</div>
+      <div class="md">Define each equipment type once, with the number of drawings of each drawing type needed for ONE unit — Stage 1 and Stage 2.</div>
       <div class="st" id="h-eq"></div>
       <div class="go">Open →</div>
     </a>
@@ -212,6 +216,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
         <select id="e-fd"><option value="">All disciplines</option></select>
         <label class="chk"><input type="checkbox" id="e-hide"> Hide empty types</label>
       </div>
+      <div class="row" style="margin-top:8px"><span class="sm">Editing drawings per unit for:</span><span id="e-st"></span></div>
       <div class="sm" style="margin-top:6px" id="e-info"></div>
     </div>
     <div class="tw"><table id="e-tbl"></table></div>
@@ -234,7 +239,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
   <section class="sec hide" id="e-io">
     <div class="card">
       <h2>Import equipment types from Excel / CSV</h2>
-      <p class="sm" style="margin-top:0">First row = headers: <b>Discipline, Equipment</b>, then one column per drawing type (drawings needed per ONE unit). Discipline must be one of <b>Electrical, Flare, Process, Utility</b> (other rows are skipped). An optional <b>Variant</b> column is supported. Existing equipment with the same Discipline + Name + Variant is updated; new ones are added. Columns named Plant / Quantity are ignored.</p>
+      <p class="sm" style="margin-top:0">First row = headers: <b>Discipline, Equipment</b>, then one column per drawing type (drawings needed per ONE unit). Discipline must be one of <b>Electrical, Flare, Process, Utility</b> (other rows are skipped). An optional <b>Variant</b> column is supported. Drawing-type columns named e.g. <b>“ANT (Stage 2)”</b> go to Stage 2; columns without a stage go to Stage 1 (the export uses this format). Existing equipment with the same Discipline + Name + Variant is updated; new ones are added. Columns named Plant / Quantity are ignored.</p>
       <input type="file" id="e-file" accept=".xlsx,.xls,.csv,.tsv,.txt">
       <p class="sm xlsNote"></p>
       <h2 style="margin-top:12px">…or paste straight from Excel</h2>
@@ -281,6 +286,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
         <select id="r-fp"><option value="">All plants</option></select>
         <label class="chk"><input type="checkbox" id="r-hide"> Hide empty types</label>
       </div>
+      <div class="row" style="margin-top:8px"><span class="sm">Show drawings for:</span><span id="r-st"></span></div>
       <div class="sm" style="margin-top:6px" id="r-info"></div>
     </div>
     <div class="tw"><table id="r-tbl"></table></div>
@@ -329,6 +335,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
       <select id="q-fp"><option value="">All plants</option></select>
       <label class="chk"><input type="checkbox" id="q-hide" checked> Hide types with no drawings</label>
     </div>
+    <div class="row" style="margin-top:8px"><span class="sm">Stage:</span><span id="q-st"></span></div>
     <div class="row" id="q-fac" style="margin-top:8px"></div>
     <div class="row" style="margin-top:8px">
       <button class="b p" id="q-exCsv">Download CSV</button>
@@ -388,7 +395,8 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
         </tr></tbody>
       </table>
     </div>
-    <p class="sm" style="margin-bottom:0">Total Hours = Quantity of Equivalent A-size drawings × Hours per Drawing. The quantity comes from the Drawing Quantities Module (all plants and disciplines).</p>
+    <p class="sm" style="margin-bottom:0">Total Hours = Quantity of Equivalent A-size drawings × Hours per Drawing. The quantity comes from the Drawing Quantities Module (all plants and disciplines, Stage 1 + Stage 2).</p>
+    <p class="sm" id="c-split" style="margin-bottom:0"></p>
     <p class="sm warn" id="c-warn" style="margin-bottom:0"></p>
   </div>
 </main>
@@ -412,7 +420,7 @@ function freshState(){return{nid:1,types:STD.map(function(p){return p[1]}),abbr:
 function upgradePlaceholders(){
   if(S.types.length>STD.length||!S.types.every(function(t){return /^Drawing_Type_\d+$/.test(t)}))return;
   STD.forEach(function(p,i){
-    if(i>=S.types.length){S.types.push('');S.eq.forEach(function(e){e.d.push(0)})}
+    if(i>=S.types.length){S.types.push('');S.eq.forEach(function(e){e.d.push(0);if(e.d2)e.d2.push(0)})}
     S.types[i]=p[1];S.abbr[i]=p[0]});
 }
 var SIZES=['A','B','C','D','E'];
@@ -427,6 +435,11 @@ function fixAbbr(){if(!S.abbr)S.abbr=[];while(S.abbr.length<S.types.length)S.abb
 function tl(c){return S.abbr[c]||S.types[c]}
 function th(c){return'<th title="'+esc(S.types[c])+' · Size '+S.size[c]+'">'+esc(tl(c))+'<div class="sz">Size '+S.size[c]+'</div></th>'}
 function nid(){return S.nid++}
+function pu(e,c,st){var a=num(e.d[c]),b=num(e.d2&&e.d2[c]);return st===1?a:(st===2?b:a+b)}
+function stName(st){return st===1?'Stage 1':(st===2?'Stage 2':'Stage 1 + Stage 2')}
+function segHTML(cur,opts){return'<div class="seg">'+opts.map(function(o){return'<button data-st="'+o[0]+'"'+(o[0]===cur?' class="on"':'')+'>'+o[1]+'</button>'}).join('')+'</div>'}
+var ST_ALL=[[0,'Total (S1 + S2)'],[1,'Stage 1'],[2,'Stage 2']],ST_EDIT=[[1,'Stage 1'],[2,'Stage 2']];
+function fixStages(){S.eq.forEach(function(e){if(!e.d2)e.d2=[];while(e.d2.length<e.d.length)e.d2.push(0);e.d2.length=e.d.length})}
 function eqLabel(e){return e.name+(e.variant?' — '+e.variant:'')}
 function eqMap(){var m={};S.eq.forEach(function(e){m[e.id]=e});return m}
 function zeros(){return S.types.map(function(){return 0})}
@@ -439,7 +452,7 @@ function discOpts(cur,ph){return'<option value="">'+ph+'</option>'+DISC.map(func
 var PLANTS=['H4','H1','M1','W1'];
 function canonPlant(s){s=sval(s).toLowerCase();for(var i=0;i<PLANTS.length;i++)if(PLANTS[i].toLowerCase()===s)return PLANTS[i];return null}
 function plantOpts(cur,ph){return'<option value="">'+ph+'</option>'+PLANTS.map(function(d){return'<option'+(d===cur?' selected':'')+'>'+d+'</option>'}).join('')}
-var R={q:'',d:'',p:'',hide:false}, E={q:'',d:'',hide:false};
+var R={q:'',d:'',p:'',hide:false,st:0}, E={q:'',d:'',hide:false,st:1};
 
 function commit(){save();fillLists();renderAll()}
 function renderAll(){renderEq();renderReg();renderSummary();renderFac();renderQty();renderDeliv();renderCost();renderTypes();renderHub()}
@@ -501,29 +514,32 @@ function renderEq(){
     idx.push(i)});
   var cols=[];
   S.types.forEach(function(t,c){
-    if(E.hide&&!idx.some(function(i){return num(S.eq[i].d[c])!==0}))return;
+    if(E.hide&&!idx.some(function(i){return pu(S.eq[i],c,0)!==0}))return;
     cols.push(c)});
-  var h='<thead><tr><th>#</th><th>Discipline</th><th class="sticky">Equipment type</th><th>Variant</th><th>Dwgs / unit</th>';
+  $('#e-st').innerHTML=segHTML(E.st,ST_EDIT);
+  var arr=E.st===2?'d2':'d';
+  var h='<thead><tr><th>#</th><th>Discipline</th><th class="sticky">Equipment type</th><th>Variant</th><th>Stage 1 dwgs / unit</th><th>Stage 2 dwgs / unit</th>';
   cols.forEach(function(c){h+=th(c)});
   h+='<th></th></tr></thead><tbody>';
-  var colT=cols.map(function(){return 0}),gT=0;
-  if(!idx.length)h+='<tr><td class="empty" colspan="'+(cols.length+6)+'">'+(S.eq.length?'No equipment matches the filters.':'No equipment types yet. Add one above.')+'</td></tr>';
+  var colT=cols.map(function(){return 0}),gT=0,gT2=0;
+  if(!idx.length)h+='<tr><td class="empty" colspan="'+(cols.length+7)+'">'+(S.eq.length?'No equipment matches the filters.':'No equipment types yet. Add one above.')+'</td></tr>';
   idx.forEach(function(i,k){
-    var e=S.eq[i],t=0;e.d.forEach(function(v){t+=num(v)});gT+=t;
+    var e=S.eq[i],t=0,t2=0;e.d.forEach(function(v,c){t+=num(v);t2+=num(e.d2[c])});gT+=t;gT2+=t2;
     h+='<tr data-i="'+i+'"><td class="n">'+(k+1)+'</td>'+
       '<td class="t ed'+(canonDisc(e.discipline)?'':' warn')+'" data-f="discipline">'+(e.discipline?esc(e.discipline):'— select —')+'</td>'+
       '<td class="t ed sticky" data-f="name">'+esc(e.name)+'</td>'+
       '<td class="t ed" data-f="variant">'+(e.variant?esc(e.variant):'<span class="sm">—</span>')+'</td>'+
-      '<td class="n tot">'+fmt(t)+'</td>';
-    cols.forEach(function(c,j){var v=num(e.d[c]);colT[j]+=v;
+      '<td class="n tot"'+(E.st===1?' style="background:var(--acc-soft)"':'')+'>'+fmt(t)+'</td>'+
+      '<td class="n tot"'+(E.st===2?' style="background:var(--acc-soft)"':'')+'>'+fmt(t2)+'</td>';
+    cols.forEach(function(c,j){var v=num(e[arr][c]);colT[j]+=v;
       h+='<td class="n ed'+(v?'':' z')+'" data-c="'+c+'">'+(v?fmt(v):'·')+'</td>'});
     h+='<td class="x"><button class="cp" data-cp="'+i+'" title="Duplicate">⧉</button><button data-del="'+i+'" title="Delete">✕</button></td></tr>';
   });
-  h+='</tbody><tfoot><tr><td></td><td></td><td class="sticky">Totals</td><td></td><td>'+fmt(gT)+'</td>';
+  h+='</tbody><tfoot><tr><td></td><td></td><td class="sticky">Totals ('+stName(E.st)+')</td><td></td><td>'+fmt(gT)+'</td><td>'+fmt(gT2)+'</td>';
   colT.forEach(function(v){h+='<td>'+fmt(v)+'</td>'});
   h+='<td></td></tr></tfoot>';
   $('#e-tbl').innerHTML=h;
-  $('#e-info').textContent=idx.length+' of '+S.eq.length+' equipment types · '+cols.length+' of '+S.types.length+' drawing types shown';
+  $('#e-info').textContent=idx.length+' of '+S.eq.length+' equipment types · '+cols.length+' of '+S.types.length+' drawing types shown · drawing-type cells show '+stName(E.st);
 }
 $('#e-tbl').addEventListener('click',function(ev){
   var b=ev.target.closest('button');
@@ -534,11 +550,11 @@ $('#e-tbl').addEventListener('click',function(ev){
     S.eq.splice(+b.dataset.del,1);commit();return}
   if(b&&b.dataset.cp!==undefined){
     var s=S.eq[+b.dataset.cp];
-    S.eq.splice(+b.dataset.cp+1,0,{id:nid(),discipline:s.discipline,name:s.name,variant:s.variant?s.variant+' (copy)':'New variant',d:s.d.slice()});
+    S.eq.splice(+b.dataset.cp+1,0,{id:nid(),discipline:s.discipline,name:s.name,variant:s.variant?s.variant+' (copy)':'New variant',d:s.d.slice(),d2:s.d2.slice()});
     commit();toast('Duplicated — now set the variant name');return}
   var td=ev.target.closest('td.ed');if(!td)return;
   var e2=S.eq[+td.parentNode.dataset.i];
-  if(td.dataset.c!==undefined){var c=+td.dataset.c;startEdit(td,'num',e2.d[c],function(v){e2.d[c]=v})}
+  if(td.dataset.c!==undefined){var c=+td.dataset.c,ar=E.st===2?'d2':'d';startEdit(td,'num',e2[ar][c],function(v){e2[ar][c]=v})}
   else if(td.dataset.f==='discipline')startEdit(td,'disc',e2.discipline,function(v){e2.discipline=v});
   else if(td.dataset.f==='variant')startEdit(td,'text',e2.variant,function(v){e2.variant=v});
   else startEdit(td,'text',e2.name,function(v){if(v)e2.name=v});
@@ -546,15 +562,16 @@ $('#e-tbl').addEventListener('click',function(ev){
 $('#e-q').addEventListener('input',function(){E.q=this.value;renderEq()});
 $('#e-fd').addEventListener('change',function(){E.d=this.value;renderEq()});
 $('#e-hide').addEventListener('change',function(){E.hide=this.checked;renderEq()});
+$('#e-st').addEventListener('click',function(ev){var b=ev.target.closest('button[data-st]');if(!b)return;E.st=+b.dataset.st;renderEq()});
 $('#neAdd').addEventListener('click',function(){
   var name=$('#neName').value.trim(),disc=$('#neDisc').value,vr=$('#neVar').value.trim();
   if(!disc){toast('Select a discipline');return}
   if(!name){toast('Enter an equipment type name');return}
   if(S.eq.some(function(x){return x.discipline===disc&&x.name.toLowerCase()===name.toLowerCase()&&x.variant.toLowerCase()===vr.toLowerCase()})){toast('That equipment + variant already exists');return}
-  S.eq.push({id:nid(),discipline:disc,name:name,variant:vr,d:zeros()});
+  S.eq.push({id:nid(),discipline:disc,name:name,variant:vr,d:zeros(),d2:zeros()});
   $('#neName').value='';$('#neVar').value='';commit();
   var w=$('#e-tbl').parentNode;w.scrollTop=w.scrollHeight;
-  toast('Added — now tap its cells to enter drawings per unit');
+  toast('Added — enter Stage 1 drawings per unit, then switch to Stage 2');
 });
 $('#neName').addEventListener('keydown',function(e){if(e.key==='Enter')$('#neAdd').click()});
 $('#neVar').addEventListener('keydown',function(e){if(e.key==='Enter')$('#neAdd').click()});
@@ -578,8 +595,8 @@ $('#typeList').addEventListener('click',function(e){
   var b=e.target.closest('button[data-td]');if(!b)return;
   var i=+b.dataset.td;
   if(!confirm('Delete drawing type "'+S.types[i]+'" and its values in every equipment type?'))return;
-  S.types.splice(i,1);S.abbr.splice(i,1);S.size.splice(i,1);S.eq.forEach(function(x){x.d.splice(i,1)});commit()});
-function addType(name,abbr){S.types.push(name);S.abbr.push(abbr||'');S.size.push('A');S.eq.forEach(function(x){x.d.push(0)})}
+  S.types.splice(i,1);S.abbr.splice(i,1);S.size.splice(i,1);S.eq.forEach(function(x){x.d.splice(i,1);x.d2.splice(i,1)});commit()});
+function addType(name,abbr){S.types.push(name);S.abbr.push(abbr||'');S.size.push('A');S.eq.forEach(function(x){x.d.push(0);x.d2.push(0)})}
 $('#addType').addEventListener('click',function(){addType('Drawing_Type_'+pad(S.types.length+1));commit();toast('Type added')});
 $('#applyTypes').addEventListener('click',function(){
   var lines=$('#typePaste').value.split(/\r?\n/).filter(function(l){return l.trim()!==''});
@@ -611,35 +628,37 @@ function renderReg(){
     idx.push(i)});
   var cols=[];
   S.types.forEach(function(t,c){
-    if(R.hide&&!idx.some(function(i){var r=S.rows[i],e=M[r.eqId];return e&&num(e.d[c])*num(r.quantity)>0}))return;
+    if(R.hide&&!idx.some(function(i){var r=S.rows[i],e=M[r.eqId];return e&&pu(e,c,R.st)*num(r.quantity)>0}))return;
     cols.push(c)});
-  var h='<thead><tr><th>#</th><th>Plant</th><th class="sticky">Equipment</th><th>Variant</th><th>Discipline</th><th>Qty</th><th>Total dwgs</th>';
+  $('#r-st').innerHTML=segHTML(R.st,ST_ALL);
+  var h='<thead><tr><th>#</th><th>Plant</th><th class="sticky">Equipment</th><th>Variant</th><th>Discipline</th><th>Qty</th><th>Stage 1 dwgs</th><th>Stage 2 dwgs</th><th>Total dwgs</th>';
   cols.forEach(function(c){h+=th(c)});
   h+='<th></th></tr></thead><tbody>';
-  var colT=cols.map(function(){return 0}),qT=0,gT=0;
-  if(!idx.length)h+='<tr><td class="empty" colspan="'+(cols.length+8)+'">'+(S.rows.length?'No rows match the filters.':'Register is empty. Use “Add to register” above.')+'</td></tr>';
+  var colT=cols.map(function(){return 0}),qT=0,gT=0,g1=0,g2=0;
+  if(!idx.length)h+='<tr><td class="empty" colspan="'+(cols.length+10)+'">'+(S.rows.length?'No rows match the filters.':'Register is empty. Use “Add to register” above.')+'</td></tr>';
   idx.forEach(function(i,k){
-    var r=S.rows[i],e=M[r.eqId],qty=num(r.quantity),t=0;
+    var r=S.rows[i],e=M[r.eqId],qty=num(r.quantity),t1=0,t2=0;
     qT+=qty;
     var cells='';
-    cols.forEach(function(c,j){var v=e?num(e.d[c])*qty:0;colT[j]+=v;
+    cols.forEach(function(c,j){var v=e?pu(e,c,R.st)*qty:0;colT[j]+=v;
       cells+='<td class="n c'+(v?'':' z')+'">'+(v?fmt(v):'·')+'</td>'});
-    S.types.forEach(function(_,c){if(e)t+=num(e.d[c])*qty});
-    gT+=t;
+    S.types.forEach(function(_,c){if(e){t1+=pu(e,c,1)*qty;t2+=pu(e,c,2)*qty}});
+    var t=t1+t2;g1+=t1;g2+=t2;gT+=t;
     h+='<tr data-r="'+i+'"><td class="n">'+(k+1)+'</td>'+
       '<td class="t ed'+(canonPlant(r.plant)?'':' warn')+'" data-f="plant">'+(r.plant?esc(r.plant):'— select —')+'</td>'+
       '<td class="t ed sticky" data-f="eq">'+(e?esc(e.name):'<span class="warn">— select —</span>')+'</td>'+
       '<td class="t c">'+(e?esc(e.variant):'')+'</td>'+
       '<td class="t c">'+(e?esc(e.discipline):'')+'</td>'+
       '<td class="n ed" data-f="quantity">'+fmt(qty)+'</td>'+
+      '<td class="n c">'+fmt(t1)+'</td><td class="n c">'+fmt(t2)+'</td>'+
       '<td class="n tot">'+fmt(t)+'</td>'+cells+
       '<td class="x"><button data-del="'+i+'" title="Delete row">✕</button></td></tr>';
   });
-  h+='</tbody><tfoot><tr><td></td><td></td><td class="sticky">Totals</td><td></td><td></td><td>'+fmt(qT)+'</td><td>'+fmt(gT)+'</td>';
+  h+='</tbody><tfoot><tr><td></td><td></td><td class="sticky">Totals</td><td></td><td></td><td>'+fmt(qT)+'</td><td>'+fmt(g1)+'</td><td>'+fmt(g2)+'</td><td>'+fmt(gT)+'</td>';
   colT.forEach(function(v){h+='<td>'+fmt(v)+'</td>'});
   h+='<td></td></tr></tfoot>';
   $('#r-tbl').innerHTML=h;
-  $('#r-info').textContent=idx.length+' of '+S.rows.length+' rows · '+cols.length+' of '+S.types.length+' drawing types shown';
+  $('#r-info').textContent=idx.length+' of '+S.rows.length+' rows · '+cols.length+' of '+S.types.length+' drawing types shown · drawing-type columns show '+stName(R.st);
 }
 $('#r-tbl').addEventListener('click',function(ev){
   var b=ev.target.closest('button[data-del]');
@@ -654,6 +673,7 @@ $('#r-q').addEventListener('input',function(){R.q=this.value;renderReg()});
 $('#r-fd').addEventListener('change',function(){R.d=this.value;renderReg()});
 $('#r-fp').addEventListener('change',function(){R.p=this.value;renderReg()});
 $('#r-hide').addEventListener('change',function(){R.hide=this.checked;renderReg()});
+$('#r-st').addEventListener('click',function(ev){var b=ev.target.closest('button[data-st]');if(!b)return;R.st=+b.dataset.st;renderReg();renderSummary()});
 $('#qaAdd').addEventListener('click',function(){
   var eid=+$('#qaEq').value;
   if(!eid){toast('Select an equipment type first');return}
@@ -672,7 +692,7 @@ function renderSummary(){
   S.rows.forEach(function(r){
     var e=M[r.eqId];if(!e)return;
     var q=num(r.quantity),rt=0;units+=q;
-    e.d.forEach(function(v,c){var x=num(v)*q;perT[c]+=x;rt+=x});
+    S.types.forEach(function(_,c){var x=pu(e,c,R.st)*q;perT[c]+=x;rt+=x});
     total+=rt;
     function add(o,k){(o[k]=o[k]||{q:0,t:0});o[k].q+=q;o[k].t+=rt}
     add(byD,e.discipline||'(none)');add(byP,r.plant||'(none)');add(byE,eqLabel(e));
@@ -681,7 +701,7 @@ function renderSummary(){
   $('#byS').innerHTML='<tr><th>Size</th><th>Types</th><th>Drawings</th></tr>'+SIZES.map(function(z){return'<tr><td>Size '+z+'</td><td>'+S.size.filter(function(x){return x===z}).length+'</td><td><b>'+fmt(bySize[z])+'</b></td></tr>'}).join('');
   var used=perT.filter(function(v){return v>0}).length;
   $('#kpis').innerHTML=
-    '<div class="kpi"><b>'+fmt(total)+'</b><span>Total drawings required</span></div>'+
+    '<div class="kpi"><b>'+fmt(total)+'</b><span>Drawings required ('+stName(R.st)+')</span></div>'+
     '<div class="kpi"><b>'+S.rows.length+'</b><span>Register rows ('+fmt(units)+' units)</span></div>'+
     '<div class="kpi"><b>'+Object.keys(byP).length+'</b><span>Plants / buildings</span></div>'+
     '<div class="kpi"><b>'+used+' / '+S.types.length+'</b><span>Drawing types in use</span></div>';
@@ -750,9 +770,13 @@ function importEq(m){
   head.forEach(function(h,i){var n=norm(h);if(n==='discipline')iD=i;else if(n==='equipment'||n==='equipmenttype')iE=i;else if(n==='variant')iV=i});
   if(iD<0||iE<0){toast('Missing columns: '+(iD<0?'Discipline ':'')+(iE<0?'Equipment':''));return}
   var tcols=[];
-  head.forEach(function(h,i){var n=norm(h);if(h&&i!==iD&&i!==iE&&i!==iV&&n!=='plant'&&n!=='quantity'&&n!=='qty')tcols.push(i)});
+  head.forEach(function(h,i){var n=norm(h);if(h&&i!==iD&&i!==iE&&i!==iV&&n!=='plant'&&n!=='quantity'&&n!=='qty'&&!/^stage[12](dwgs|drawings)?(perunit|unit)?$/.test(n))tcols.push(i)});
   var tmap={};S.types.forEach(function(t,i){tmap[t]=i});S.abbr.forEach(function(a,i){if(a&&!(a in tmap))tmap[a]=i});
-  var cidx=tcols.map(function(c){var n=head[c];
+  var cst=[];
+  var cidx=tcols.map(function(c){
+    var n=head[c],st=1,mm=n.match(/^(.*?)\s*(?:[\(\[]\s*(?:stage|st|s)\s*([12])\s*[\)\]]|[\-–]\s*(?:stage|st|s)\s*([12])|\s+stage\s*([12]))\s*$/i);
+    if(mm&&mm[1]){n=mm[1].trim();st=+(mm[2]||mm[3]||mm[4])}
+    cst.push(st);
     if(!(n in tmap)){addType(n);tmap[n]=S.types.length-1}
     return tmap[n]});
   var add=0,upd=0,bad={};
@@ -762,15 +786,16 @@ function importEq(m){
     if(!disc){bad[sval(r[iD])||'(blank)']=1;return}
     var vr=iV>=0?sval(r[iV]):'';
     var e=S.eq.filter(function(x){return x.name.toLowerCase()===name.toLowerCase()&&x.discipline===disc&&x.variant.toLowerCase()===vr.toLowerCase()})[0];
-    if(e)upd++;else{e={id:nid(),discipline:disc,name:name,variant:vr,d:zeros()};S.eq.push(e);add++}
-    tcols.forEach(function(c,j){e.d[cidx[j]]=num(r[c])});
+    if(e)upd++;else{e={id:nid(),discipline:disc,name:name,variant:vr,d:zeros(),d2:zeros()};S.eq.push(e);add++}
+    tcols.forEach(function(c,j){e[cst[j]===2?'d2':'d'][cidx[j]]=num(r[c])});
   });
   var bk=Object.keys(bad);
   commit();toast(add+' added, '+upd+' updated'+(bk.length?' · skipped invalid discipline: '+bk.join(', '):''));
 }
 function eqMatrix(){
-  var m=[['Discipline','Equipment','Variant'].concat(S.types)];
-  S.eq.forEach(function(e){m.push([e.discipline,e.name,e.variant].concat(e.d.map(num)))});return m}
+  var hd=function(s){return S.types.map(function(t){return t+' (Stage '+s+')'})};
+  var m=[['Discipline','Equipment','Variant'].concat(hd(1),hd(2))];
+  S.eq.forEach(function(e){m.push([e.discipline,e.name,e.variant].concat(e.d.map(num),e.d2.map(num)))});return m}
 $('#e-doPaste').addEventListener('click',function(){
   var t=$('#e-paste').value;if(!t.trim()){toast('Paste data first');return}
   importEq(parseDelim(t));$('#e-paste').value=''});
@@ -808,9 +833,12 @@ function importReg(m){
   commit();toast(add+' rows imported'+((mk.length||bp.length)?' · some rows skipped (see message)':''));
 }
 function regMatrix(){
-  var M=eqMap(),m=[['Plant','Discipline','Equipment','Variant','Quantity'].concat(S.types)];
+  var hd=function(s){return S.types.map(function(t){return t+' (Stage '+s+')'})};
+  var M=eqMap(),m=[['Plant','Discipline','Equipment','Variant','Quantity','Stage 1 dwgs','Stage 2 dwgs','Total dwgs'].concat(hd(1),hd(2))];
   S.rows.forEach(function(r){var e=M[r.eqId],q=num(r.quantity);
-    m.push([r.plant,e?e.discipline:'',e?e.name:'',e?e.variant:'',q].concat(S.types.map(function(_,c){return e?num(e.d[c])*q:0})))});
+    var a=S.types.map(function(_,c){return e?pu(e,c,1)*q:0}),b=S.types.map(function(_,c){return e?pu(e,c,2)*q:0});
+    var s1=a.reduce(function(x,y){return x+y},0),s2=b.reduce(function(x,y){return x+y},0);
+    m.push([r.plant,e?e.discipline:'',e?e.name:'',e?e.variant:'',q,fmt(s1),fmt(s2),fmt(s1+s2)].concat(a.map(fmt),b.map(fmt)))});
   return m}
 $('#r-doPaste').addEventListener('click',function(){
   var t=$('#r-paste').value;if(!t.trim()){toast('Paste data first');return}
@@ -822,27 +850,28 @@ $('#r-clear').addEventListener('click',function(){
   if(!confirm('Delete ALL register rows?'))return;S.rows=[];commit();toast('Register cleared')});
 
 /* ================= Drawing Quantities Module ================= */
-var Q={d:'',p:'',hide:true};
-function perTypeQty(d,p){
+var Q={d:'',p:'',hide:true,st:0};
+function perTypeQty(d,p,st){
   var M=eqMap(),perT=zeros();
   S.rows.forEach(function(r){
     var e=M[r.eqId];if(!e)return;
     if(d&&e.discipline!==d)return;
     if(p&&r.plant!==p)return;
     var q=num(r.quantity);
-    e.d.forEach(function(v,c){perT[c]+=num(v)*q})});
+    S.types.forEach(function(_,c){perT[c]+=pu(e,c,st||0)*q})});
   return perT}
 function qtyCols(){return SIZES.filter(function(z){return z!=='C'||S.size.indexOf('C')>=0})}
 function qtyMatrix(){
-  var perT=perTypeQty(Q.d,Q.p),cols=qtyCols();
-  var m=[['Abbreviation','Description','Drawing Size'].concat(cols.map(function(z){return'Quantity of '+z+' drawings'})).concat(['Equivalent A-size drawings'])];
+  var perT=perTypeQty(Q.d,Q.p,Q.st),cols=qtyCols();
+  var m=[['Stage: '+stName(Q.st)],['Abbreviation','Description','Drawing Size'].concat(cols.map(function(z){return'Quantity of '+z+' drawings'})).concat(['Equivalent A-size drawings'])];
   S.types.forEach(function(t,c){
     if(Q.hide&&!perT[c])return;
     var f=S.factor[S.size[c]];
     m.push([S.abbr[c],t,S.size[c]].concat(cols.map(function(z){return S.size[c]===z?fmt(perT[c]):0})).concat([f==null?'':fmt(perT[c]*f)]))});
   return m}
 function renderQty(){
-  var perT=perTypeQty(Q.d,Q.p),cols=qtyCols();
+  var perT=perTypeQty(Q.d,Q.p,Q.st),cols=qtyCols();
+  $('#q-st').innerHTML=segHTML(Q.st,ST_ALL);
   var h='<thead><tr><th class="dt">Drawing Type</th><th>Drawing Size</th>'+cols.map(function(z){return'<th style="text-align:right">Quantity of '+z+' drawings</th>'}).join('')+'<th style="text-align:right">Equivalent A-size drawings</th></tr></thead><tbody>';
   var tot={},shown=0,totEq=0,noFac={};cols.forEach(function(z){tot[z]=0});
   S.types.forEach(function(t,c){
@@ -862,7 +891,7 @@ function renderQty(){
   h+='</tbody><tfoot><tr><td class="dt">Total ('+fmt(g)+' drawings)</td><td></td>'+cols.map(function(z){return'<td>'+fmt(tot[z])+'</td>'}).join('')+'<td>'+fmt(totEq)+'</td></tr></tfoot>';
   $('#q-tbl').innerHTML=h;
   var nf=Object.keys(noFac);
-  $('#q-info').textContent=shown+' of '+S.types.length+' drawing types shown · '+fmt(totEq)+' equivalent A-size drawings'+(nf.length?' · no conversion factor set for size '+nf.join(', ')+' (not counted)':'');
+  $('#q-info').textContent=stName(Q.st)+' · '+shown+' of '+S.types.length+' drawing types shown · '+fmt(totEq)+' equivalent A-size drawings'+(nf.length?' · no conversion factor set for size '+nf.join(', ')+' (not counted)':'');
 }
 function renderFac(){
   var box=$('#q-fac');if(box.contains(document.activeElement))return;
@@ -874,6 +903,7 @@ $('#q-fac').addEventListener('change',function(e){
 $('#q-fd').addEventListener('change',function(){Q.d=this.value;renderQty()});
 $('#q-fp').addEventListener('change',function(){Q.p=this.value;renderQty()});
 $('#q-hide').addEventListener('change',function(){Q.hide=this.checked;renderQty()});
+$('#q-st').addEventListener('click',function(ev){var b=ev.target.closest('button[data-st]');if(!b)return;Q.st=+b.dataset.st;renderQty()});
 $('#q-exCsv').addEventListener('click',function(){exportCsv('drawing_quantities',qtyMatrix())});
 $('#q-exXlsx').addEventListener('click',function(){exportXlsx('drawing_quantities','Quantities',qtyMatrix())});
 
@@ -943,8 +973,8 @@ $('#d-clear').addEventListener('click',function(){
 
 /* ================= Cost Estimate Page ================= */
 function fnum(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:2})}
-function equivA(){
-  var perT=perTypeQty('',''),tot=0,miss={};
+function equivA(st){
+  var perT=perTypeQty('','',st||0),tot=0,miss={};
   perT.forEach(function(v,c){
     if(!v)return;var f=S.factor[S.size[c]];
     if(f==null)miss[S.size[c]]=1;else tot+=v*f});
@@ -953,6 +983,8 @@ function renderCost(){
   var e=equivA(),hpd=num(S.cost.hpd);
   $('#c-qty').textContent=fnum(e.tot);
   $('#c-tot').textContent=fnum(e.tot*hpd);
+  var e1=equivA(1),e2=equivA(2);
+  $('#c-split').textContent='Includes Stage 1: '+fnum(e1.tot)+' equivalent A-size drawings ('+fnum(e1.tot*hpd)+' hours) · Stage 2: '+fnum(e2.tot)+' ('+fnum(e2.tot*hpd)+' hours).';
   var inp=$('#c-hpd');
   if(document.activeElement!==inp)inp.value=hpd?hpd:'';
   $('#c-warn').textContent=e.miss.length?'Note: no conversion factor is set for size '+e.miss.join(', ')+', so those drawings are not counted (set it in the Drawing Quantities Module).':'';
@@ -978,7 +1010,7 @@ $('#jsonFile').addEventListener('change',function(){
       if(!o.types||!o.eq||!o.rows)throw 0;
       if(!confirm('Replace ALL current data with this backup?')){inp.value='';return}
       var mx=0;o.eq.concat(o.rows).forEach(function(x){if(x.id>mx)mx=x.id});
-      o.nid=Math.max(o.nid||1,mx+1);S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();applySizeDefaults();commit();toast('Backup restored')}
+      o.nid=Math.max(o.nid||1,mx+1);S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();fixStages();applySizeDefaults();commit();toast('Backup restored')}
     catch(e){toast('Not a valid backup file')}
     inp.value='';
   };fr.readAsText(f)});
@@ -1031,7 +1063,7 @@ function hasData(){return S.eq.length||S.rows.length||S.deliv.length}
 function normalizeLoaded(o){
   var mx=0;(o.eq||[]).concat(o.rows||[],o.deliv||[]).forEach(function(x){if(x.id>mx)mx=x.id});
   o.nid=Math.max(o.nid||1,mx+1);
-  S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();applySizeDefaults();
+  S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();fixStages();applySizeDefaults();
 }
 function cloudUI(){
   $('#cl-out').classList.toggle('hide',!!cUser);
@@ -1121,7 +1153,7 @@ $('#cl-auto').addEventListener('change',function(){
 /* ================= boot ================= */
 S=load();
 if(!S||!S.types||!S.eq||!S.rows)S=freshState();
-S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();upgradePlaceholders();fixAbbr();applySizeDefaults();S.eq.forEach(function(e){var c=canonDisc(e.discipline);if(c)e.discipline=c});S.rows.forEach(function(r){var c=canonPlant(r.plant);if(c)r.plant=c});save();
+S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();upgradePlaceholders();fixAbbr();fixStages();applySizeDefaults();S.eq.forEach(function(e){var c=canonDisc(e.discipline);if(c)e.discipline=c});S.rows.forEach(function(r){var c=canonPlant(r.plant);if(c)r.plant=c});save();
 fillLists();renderAll();route();
 </script>
 </body>
