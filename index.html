@@ -71,6 +71,9 @@ td.x{padding:0 4px;text-align:center}
 td.x button{border:0;background:none;font-size:15px;padding:4px 5px;color:#a12a2a}
 td.x button.cp{color:var(--acc)}
 .warn{color:#b4561b}
+.cloud{border-color:#c9d8f2}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#b6bfc9;margin-right:6px;vertical-align:middle}
+.dot.on{background:#1d7a46}.dot.busy{background:#d79b1f}.dot.err{background:#b42a2a}
 .dt{white-space:normal!important;min-width:230px;max-width:330px;padding:7px 8px!important;position:sticky;left:0;background:#fff;z-index:4}
 thead th.dt{background:var(--head);z-index:7}
 tfoot td.dt{background:var(--head);z-index:7;text-align:left}
@@ -151,14 +154,34 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
       <div class="go">Coming soon</div>
     </div>
   </div>
-  <div class="card" style="margin-top:18px">
+  <div class="card cloud" style="margin-top:18px">
+    <h2>☁️ Cloud sync (Supabase)</h2>
+    <div id="cl-out">
+      <p class="sm" style="margin-top:0">Sign in with your admin account to save this app's data online and use it on any device.</p>
+      <div class="row">
+        <input type="text" id="cl-email" placeholder="Email" autocomplete="username" inputmode="email" style="flex:1;min-width:160px">
+        <input type="password" id="cl-pass" placeholder="Password" autocomplete="current-password" style="flex:1;min-width:140px">
+        <button class="b p" id="cl-in">Sign in</button>
+      </div>
+    </div>
+    <div id="cl-inbox" class="hide">
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="cl-auto" checked> Auto-save changes to cloud</label>
+        <button class="b p" id="cl-save">Save to cloud now</button>
+        <button class="b" id="cl-load">Load from cloud</button>
+        <button class="b" id="cl-outbtn" style="margin-left:auto">Sign out</button>
+      </div>
+    </div>
+    <p class="sm" style="margin-bottom:0"><span class="dot" id="cl-dot"></span><span id="cl-status">Connecting…</span></p>
+  </div>
+  <div class="card" style="margin-top:12px">
     <h2>Data (all modules)</h2>
     <div class="row">
       <button class="b p" id="exJson">Backup everything (JSON)</button>
       <label class="sm">Restore: <input type="file" id="jsonFile" accept=".json"></label>
       <button class="b d" id="eraseAll" style="margin-left:auto">Erase all data</button>
     </div>
-    <p class="sm" style="margin-bottom:0">Data lives only in this browser. Take a backup now and then.</p>
+    <p class="sm" style="margin-bottom:0">Data is always kept in this browser too; the cloud copy is the shared one when you're signed in.</p>
   </div>
 </section>
 
@@ -381,7 +404,7 @@ function pad(n){return n<10?'0'+n:''+n}
 function num(v){var n=parseFloat(String(v==null?'':v).replace(',','.'));return isFinite(n)?n:0}
 function fmt(n){return Math.round(n*100)/100}
 function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove('on')},2600)}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){S.savedAt=new Date().toISOString();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.cloudQueue)cloudQueue()}
 function load(){try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){return null}}
 var STD=[["ANT","Construction & Placement Antenna/Communication Tower"],["APP","Layout of Appurtenances"],["ARC","Hospital/Laboratory /Office (Plant/Layout)"],["CAT","All Cathodic Protection Drawings"],["CBL","Cable & conduit Layout/Routing, Grounding"],["CCS","Cable & conduit Schedule"],["COM","Unkown Communication Drawings"],["DAT","Data Sheet (equipment,instrument,orifice,etc)"],["DOC","Scope of Work, Operating Instructions,Etc"],["DSC","Drawing Status Control, Drawing Control Sheet"],["DTA","Data Communication"],["E1L","Electrical one Line"],["ECD","Connection Diagram, Interconnection Diagram"],["EDT","Misc Electrical Det/Plan/Layout/Assembly"],["ELM","Elementary Diagram"],["EPD","Power Distribution Diagram (Under/Above) ground"],["EQA","Equipment/Console Arrengement/Layout/Location"],["EQD","Equipment Assembly, Details & Plans"],["EQS","Special Equipment (Marine/Rigging/Cranes,Etc)"],["EWD","Wiring Diagram (Circuit/Digital/Signal Wiring)"],["FAB","Fabrication Det, Pre-Fabricated Detail"],["FDN","Foundation Plan & Det, Concrete Dike, Sewr"],["FLN","Flowlines/Turnklines, Pipeline Routing"],["FPP","Facility Plot Plan, Area Maps Master Plot Plan"],["FPS","Fire Protection Sys, Portable Safety Equipment"],["FSH","Face Sheet A,B,C,D,E Size, Face Sheet Index"],["GAP","Grading/Paving/Earth Work, Road/Site Plan"],["GAT","Gate Plan/Layout/Detail"],["HAZ","Hazardous (Electricity/Fire) Area Classificaiton"],["HGR","Hydrographic Map"],["HVA","HVAC (Equipment/Material/Detail/Layout/Fabr)"],["HYD","Hydrostatic Test Diagram"],["IDT","Misc Instrument Detail/Section/Layout"],["IIS","Instrument Installation Schedule"],["ILD","Instrument Loop Diagram"],["INS","Insulation Detail"],["IPD","Instrument Piping/Installation/Mounting Detail"],["IPL","Instrument Points and Lines/Plan Layout"],["ISD","Instrument Segment Diagram"],["ISO","Isometric Piping Detail, Instrument Piping ISO"],["ISS","Instrument Speceficaiton Sheet, Meter Data Sheet, Thickness"],["KEY","Key/Location/Site/Overall,Vicnity Plan"],["LDT","Line Designation Table"],["LIB","Library Drawing"],["LOG","Logic Diagram/Functional Diagram"],["LTG","Lighting Layout/Plan/Details,Emergency Lighiting"],["MCC","Motor Control Center"],["MDF","Main Distribution Frame"],["MDT","Misc Mecnanitcal Details"],["MSD","Material Selection Diagram"],["MTL","List of Material, Bill of Material"],["OSI","On-Stream Inspection"],["PDT","Misc Piping Det/Layout/Section/Elevation"],["PER","Security Fence Plan/Layout/Detail"],["PFD","Process Flow Diagram"],["PID","Piping and Instrument Diagram"],["PLB","Plumbing Detail/Layout,Drain/Vent Piping"],["PNL","Instrument/Local Control Panel Layout/Arragenement"],["PPL","Piping Plan/Index/Arranegemnt/Routing"],["PRF","Plant & Profile, Pipeline Alignment"],["PRS","Prespective View"],["RAK","Rack Layout/Face Elev, Cable Rack"],["RPF","Radio Path Profile, Radiation Profile"],["SCE","IDAS Network Plan/Layout/Detail"],["SCH","Schedule (Name Plate/Lubr/Tie-In/Misc)"],["SCM","Schematic/Operating/Block/Principle Diagram"],["SDS","Smart Data Sheet"],["SDT","Structural Det,Framing Plan, Roof frame"],["SIS","Safety Instruction Sheet (Equipment/Instrument)"],["SPP","Area Map"],["SSD","Security Fence & Related Drawings, Comp Gate"],["STD","Standard Drawing"],["STL","Steel Bending Details/Rebar Schedules"],["SWG","SwitchGear Specificaiton and Arranegement"],["TAB","Tabulation Electrical Load"],["TOP","Topographic & Contour Map"],["TRM","Terminal Layout"],["UTI","Utility (RW/DW/Steam/Tel/AC/FW/Gas/Electricity)"],["VOD","Valve Operating Diagram"]];
 function freshState(){return{nid:1,types:STD.map(function(p){return p[1]}),abbr:STD.map(function(p){return p[0]}),size:STD.map(function(p){return SIZE_DEFAULTS[p[0]]||'A'}),sizeV:2,factor:{A:1,B:0.5,C:null,D:0.25,E:0.08},eq:[],rows:[],deliv:[],cost:{hpd:0}}}
@@ -993,6 +1016,105 @@ window.addEventListener('hashchange',route);
   function note(t){[].forEach.call(document.querySelectorAll('.xlsNote'),function(n){n.textContent=t})}
   s.onload=function(){note('Excel (.xlsx) reading is ready.')};
   s.onerror=function(){note('Offline: .xlsx files can’t be read right now. Use CSV, or copy the table from Excel and paste below.')};
+  document.head.appendChild(s);
+})();
+
+/* ================= Cloud sync (Supabase) ================= */
+var SB_URL='https://bhfgwlkzkbwcwyoypwhy.supabase.co';
+var SB_KEY='sb_publishable_9YylflVQca-62NHsBKSTeA_GY896nj3';
+var CLOUD_TABLE='estimator_data',CLOUD_KEY='main';
+var sb=null,cUser=null,cTimer=null,cBusy=false,cAgain=false;
+function cStat(t,cls){$('#cl-status').textContent=t;$('#cl-dot').className='dot'+(cls?' '+cls:'')}
+function cWhen(iso){try{return new Date(iso).toLocaleString()}catch(e){return iso}}
+function autoOn(){try{return localStorage.getItem(KEY+'.auto')!=='0'}catch(e){return true}}
+function hasData(){return S.eq.length||S.rows.length||S.deliv.length}
+function normalizeLoaded(o){
+  var mx=0;(o.eq||[]).concat(o.rows||[],o.deliv||[]).forEach(function(x){if(x.id>mx)mx=x.id});
+  o.nid=Math.max(o.nid||1,mx+1);
+  S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();applySizeDefaults();
+}
+function cloudUI(){
+  $('#cl-out').classList.toggle('hide',!!cUser);
+  $('#cl-inbox').classList.toggle('hide',!cUser);
+  $('#cl-auto').checked=autoOn();
+}
+window.cloudQueue=function(){
+  if(!sb||!cUser||!autoOn())return;
+  clearTimeout(cTimer);cStat('Unsaved changes…','busy');
+  cTimer=setTimeout(cloudPush,1500);
+};
+function cloudPush(manual){
+  if(!sb||!cUser)return Promise.resolve();
+  if(cBusy){cAgain=true;return Promise.resolve()}
+  cBusy=true;cStat('Saving to cloud…','busy');
+  var stamp=new Date().toISOString();
+  return sb.from(CLOUD_TABLE).upsert({key:CLOUD_KEY,value:S,updated_at:stamp}).then(function(r){
+    cBusy=false;
+    if(r.error){cStat('Cloud save failed: '+r.error.message,'err');if(manual)toast('Cloud save failed');return}
+    cStat('Saved to cloud · '+cWhen(stamp),'on');if(manual)toast('Saved to cloud');
+    if(cAgain){cAgain=false;cloudPush()}
+  },function(){cBusy=false;cStat('Cloud save failed (offline?) — data is safe in this browser','err')});
+}
+function cloudFetch(){
+  return sb.from(CLOUD_TABLE).select('value,updated_at').eq('key',CLOUD_KEY).maybeSingle();
+}
+function cloudPull(ask){
+  cStat('Checking cloud…','busy');
+  return cloudFetch().then(function(r){
+    if(r.error){cStat('Cloud read failed: '+r.error.message,'err');return}
+    var v=r.data&&r.data.value;
+    if(!v||!v.types||!v.eq||!v.rows){
+      cStat('No cloud copy yet — uploading this browser\u2019s data…','busy');
+      return cloudPush();
+    }
+    var cloudT=r.data.updated_at, localT=S.savedAt||'';
+    /* cloud is newer (or this browser is empty) -> just load it; only ask when this browser has newer, unsynced changes */
+    var take=!ask||!hasData()||!localT||new Date(cloudT)>=new Date(localT);
+    if(!take){
+      take=confirm('This browser has changes (saved '+cWhen(localT)+') that are NEWER than the cloud copy (saved '+cWhen(cloudT)+').\n\nOK = upload this browser\u2019s data to the cloud\nCancel = discard them and load the cloud copy');
+      if(take)return cloudPush(true);
+    }
+    var cq=window.cloudQueue;window.cloudQueue=null;
+    normalizeLoaded(r.data.value);S.savedAt=cloudT;
+    try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+    fillLists();renderAll();
+    window.cloudQueue=cq;
+    cStat('Loaded from cloud · '+cWhen(cloudT),'on');toast('Cloud data loaded');
+  },function(){cStat('Cloud read failed (offline?)','err')});
+}
+$('#cl-in').addEventListener('click',function(){
+  if(!sb){toast('Cloud not available (offline?)');return}
+  var em=$('#cl-email').value.trim(),pw=$('#cl-pass').value;
+  if(!em||!pw){toast('Enter email and password');return}
+  cStat('Signing in…','busy');
+  sb.auth.signInWithPassword({email:em,password:pw}).then(function(r){
+    if(r.error){cStat('Sign-in failed: '+r.error.message,'err');return}
+    $('#cl-pass').value='';
+  });
+});
+$('#cl-pass').addEventListener('keydown',function(e){if(e.key==='Enter')$('#cl-in').click()});
+$('#cl-outbtn').addEventListener('click',function(){if(sb)sb.auth.signOut()});
+$('#cl-save').addEventListener('click',function(){clearTimeout(cTimer);cloudPush(true)});
+$('#cl-load').addEventListener('click',function(){
+  if(!confirm('Replace this browser\u2019s data with the cloud copy?'))return;
+  cloudPull(false)});
+$('#cl-auto').addEventListener('change',function(){
+  try{localStorage.setItem(KEY+'.auto',this.checked?'1':'0')}catch(e){}
+  if(this.checked)cloudPush();else cStat('Signed in · auto-save off','on')});
+(function(){
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+  s.onload=function(){
+    try{sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){cStat('Cloud not available','err');return}
+    sb.auth.onAuthStateChange(function(ev,session){
+      var u=session&&session.user||null;
+      var was=cUser;cUser=u;cloudUI();
+      if(!u){cStat('Not signed in — data is saved in this browser only','');return}
+      if(!was){setTimeout(function(){cloudPull(true)},0)}
+    });
+    sb.auth.getSession().then(function(r){if(!r.data.session){cUser=null;cloudUI();cStat('Not signed in — data is saved in this browser only','')}});
+  };
+  s.onerror=function(){cStat('Offline — cloud sync unavailable; data is saved in this browser','err')};
   document.head.appendChild(s);
 })();
 

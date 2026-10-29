@@ -1,6 +1,6 @@
 # Estimator
 
-Engineering project hub — a single-file HTML web app (no database, no build step). Data is stored in the browser (localStorage); use the front page's **Backup everything (JSON)** to keep a copy.
+Engineering project hub — a single-file HTML web app (no database, no build step). Data is stored in the browser (localStorage) and, when signed in with the admin account on the front page, synced to Supabase (table `estimator_data`, key `main`). The front page's **Backup everything (JSON)** keeps an extra copy.
 
 Open `index.html` in any browser, or enable GitHub Pages for this repo to use it online.
 
