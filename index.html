@@ -108,7 +108,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
 <section id="home">
   <div class="hero">
     <h1>Engineering Project Hub</h1>
-    <p>Choose a module to open <span class="sm" style="float:right">Version 29 Oct 2026 · 15:40</span></p>
+    <p>Choose a module to open <span class="sm" style="float:right">Version 29 Oct 2026 · 16:20</span></p>
     <div class="note hide" id="cl-banner" style="margin-top:-8px">You're not signed in, so you're seeing only this browser's data. <a href="#" id="cl-goto">Sign in</a> to load and save the online data.</div>
   </div>
   <div class="grid">
@@ -148,7 +148,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
       <div class="step">Estimate</div>
       <div class="ico">💲</div>
       <div class="mt">Cost Estimate Page</div>
-      <div class="md">Total project cost, built up section by section — starting with drawings development hours.</div>
+      <div class="md">Cost built up section by section, side by side for each estimate — starting with drawings development hours.</div>
       <div class="st" id="h-c"></div>
       <div class="go">Open →</div>
     </a>
@@ -159,7 +159,13 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
       <div class="go">Coming soon</div>
     </div>
   </div>
-  <div class="card cloud" style="margin-top:18px">
+  <div class="card" style="margin-top:18px">
+    <h2>📁 Estimates</h2>
+    <p class="sm" style="margin-top:0">Each plant belongs to one estimate. Register rows, drawing quantities and cost are counted per estimate from their plant; drawings are never shared between estimates.</p>
+    <div id="est-setup"></div>
+    <p class="sm warn" id="est-warn" style="margin-bottom:0"></p>
+  </div>
+  <div class="card cloud" style="margin-top:12px">
     <h2>☁️ Cloud sync (Supabase)</h2>
     <div id="cl-out">
       <p class="sm" style="margin-top:0">Sign in with your admin account (the same user ID and password as your products app) to load and save the online data on any device.</p>
@@ -290,6 +296,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
         <select id="r-fp"><option value="">All plants</option></select>
         <label class="chk"><input type="checkbox" id="r-hide"> Hide empty types</label>
       </div>
+      <div class="row" style="margin-top:8px"><span class="sm">Estimate:</span><span class="estsw"></span><span class="sm estplants"></span></div>
       <div class="row" style="margin-top:8px"><span class="sm">Show drawings for:</span><span id="r-st"></span></div>
       <div class="sm" style="margin-top:6px" id="r-info"></div>
     </div>
@@ -320,7 +327,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
     <div class="card">
       <h2>Export register</h2>
       <div class="row"><button class="b p" id="r-exCsv">Download CSV</button><button class="b" id="r-exXlsx">Download Excel</button></div>
-      <p class="sm">Includes the calculated drawings per type for every row (ignores filters).</p>
+      <p class="sm">Includes the calculated drawings per type. Follows the Estimate switch (All = every row); other filters are ignored.</p>
     </div>
     <div class="card">
       <h2>Reset</h2>
@@ -339,6 +346,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
       <select id="q-fp"><option value="">All plants</option></select>
       <label class="chk"><input type="checkbox" id="q-hide" checked> Hide types with no drawings</label>
     </div>
+    <div class="row" style="margin-top:8px"><span class="sm">Estimate:</span><span class="estsw"></span><span class="sm estplants"></span></div>
     <div class="row" style="margin-top:8px"><span class="sm">Stage:</span><span id="q-st"></span></div>
     <div class="row" id="q-fac" style="margin-top:8px"></div>
     <div class="row" style="margin-top:8px">
@@ -361,13 +369,14 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
       <input type="search" id="d-q" placeholder="Search deliverables…" style="flex:1;min-width:140px">
       <button class="b p" id="d-add">+ Row</button>
     </div>
+    <div class="row" style="margin-top:8px"><span class="sm">Estimate:</span><span class="estsw"></span><span class="sm estplants"></span></div>
     <div class="sm" style="margin-top:6px" id="d-info"></div>
   </div>
   <div class="tw"><table id="d-tbl"></table></div>
   <p class="sm">Tap any cell to edit. Saved automatically in this browser.</p>
   <div class="card">
     <h2>Import / Export</h2>
-    <p class="sm" style="margin-top:0">Headers: <b>Phase, Type, Deliverable Name</b> and optionally <b>Cost (USD)</b>. Rows are appended.</p>
+    <p class="sm" style="margin-top:0">Headers: <b>Phase, Type, Deliverable Name</b> and optionally <b>Cost (USD)</b> and <b>Estimate</b> (e.g. “Estimate 1”). Rows without an estimate go to the estimate selected above. Rows are appended. Export follows the Estimate switch.</p>
     <input type="file" id="d-file" accept=".xlsx,.xls,.csv,.tsv,.txt">
     <p class="sm xlsNote"></p>
     <textarea id="d-paste" placeholder="…or paste from Excel here (including the header row)" style="min-height:70px"></textarea>
@@ -385,22 +394,9 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
 <main id="m-c" class="hide">
   <div class="card">
     <h2>Section 1: Drawings Development Cost</h2>
-    <div class="tw" style="max-height:none">
-      <table>
-        <thead><tr>
-          <th style="text-align:right">Quantity of Equivalent A-size drawings</th>
-          <th style="text-align:right">Hours per Drawing</th>
-          <th style="text-align:right">Total Hours</th>
-        </tr></thead>
-        <tbody><tr>
-          <td class="n" style="min-width:190px;font-weight:600" id="c-qty">0</td>
-          <td class="n" style="min-width:150px;padding:4px 8px"><input type="number" id="c-hpd" min="0" step="any" inputmode="decimal" placeholder="0" style="width:100%;text-align:right"></td>
-          <td class="n tot" style="min-width:150px" id="c-tot">0</td>
-        </tr></tbody>
-      </table>
-    </div>
-    <p class="sm" style="margin-bottom:0">Total Hours = Quantity of Equivalent A-size drawings × Hours per Drawing. The quantity comes from the Drawing Quantities Module (all plants and disciplines, Stage 1 + Stage 2).</p>
-    <p class="sm" id="c-split" style="margin-bottom:0"></p>
+    <div class="row" style="margin-bottom:10px"><label class="chk">Hours per Drawing (same for all estimates): <input type="number" id="c-hpd" min="0" step="any" inputmode="decimal" placeholder="0" style="width:110px;text-align:right"></label></div>
+    <div class="tw" style="max-height:none"><table id="c-tbl"></table></div>
+    <p class="sm" style="margin-bottom:0">Total Hours = Equivalent A-size drawings (Stage 1 + Stage 2) × Hours per Drawing. Each estimate counts only the register rows of its own plants (set on the front page).</p>
     <p class="sm warn" id="c-warn" style="margin-bottom:0"></p>
   </div>
 </main>
@@ -416,10 +412,13 @@ function pad(n){return n<10?'0'+n:''+n}
 function num(v){var n=parseFloat(String(v==null?'':v).replace(',','.'));return isFinite(n)?n:0}
 function fmt(n){return Math.round(n*100)/100}
 function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove('on')},2600)}
-function save(){S.savedAt=new Date().toISOString();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.cloudQueue)cloudQueue()}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function setDirty(v){try{if(v)localStorage.setItem(KEY+'.dirty','1');else localStorage.removeItem(KEY+'.dirty')}catch(e){}}
+function isDirty(){try{return localStorage.getItem(KEY+'.dirty')==='1'}catch(e){return false}}
+function save(){S.savedAt=new Date().toISOString();persist();setDirty(true);if(window.cloudQueue)cloudQueue()}
 function load(){try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){return null}}
 var STD=[["ANT","Construction & Placement Antenna/Communication Tower"],["APP","Layout of Appurtenances"],["ARC","Hospital/Laboratory /Office (Plant/Layout)"],["CAT","All Cathodic Protection Drawings"],["CBL","Cable & conduit Layout/Routing, Grounding"],["CCS","Cable & conduit Schedule"],["COM","Unkown Communication Drawings"],["DAT","Data Sheet (equipment,instrument,orifice,etc)"],["DOC","Scope of Work, Operating Instructions,Etc"],["DSC","Drawing Status Control, Drawing Control Sheet"],["DTA","Data Communication"],["E1L","Electrical one Line"],["ECD","Connection Diagram, Interconnection Diagram"],["EDT","Misc Electrical Det/Plan/Layout/Assembly"],["ELM","Elementary Diagram"],["EPD","Power Distribution Diagram (Under/Above) ground"],["EQA","Equipment/Console Arrengement/Layout/Location"],["EQD","Equipment Assembly, Details & Plans"],["EQS","Special Equipment (Marine/Rigging/Cranes,Etc)"],["EWD","Wiring Diagram (Circuit/Digital/Signal Wiring)"],["FAB","Fabrication Det, Pre-Fabricated Detail"],["FDN","Foundation Plan & Det, Concrete Dike, Sewr"],["FLN","Flowlines/Turnklines, Pipeline Routing"],["FPP","Facility Plot Plan, Area Maps Master Plot Plan"],["FPS","Fire Protection Sys, Portable Safety Equipment"],["FSH","Face Sheet A,B,C,D,E Size, Face Sheet Index"],["GAP","Grading/Paving/Earth Work, Road/Site Plan"],["GAT","Gate Plan/Layout/Detail"],["HAZ","Hazardous (Electricity/Fire) Area Classificaiton"],["HGR","Hydrographic Map"],["HVA","HVAC (Equipment/Material/Detail/Layout/Fabr)"],["HYD","Hydrostatic Test Diagram"],["IDT","Misc Instrument Detail/Section/Layout"],["IIS","Instrument Installation Schedule"],["ILD","Instrument Loop Diagram"],["INS","Insulation Detail"],["IPD","Instrument Piping/Installation/Mounting Detail"],["IPL","Instrument Points and Lines/Plan Layout"],["ISD","Instrument Segment Diagram"],["ISO","Isometric Piping Detail, Instrument Piping ISO"],["ISS","Instrument Speceficaiton Sheet, Meter Data Sheet, Thickness"],["KEY","Key/Location/Site/Overall,Vicnity Plan"],["LDT","Line Designation Table"],["LIB","Library Drawing"],["LOG","Logic Diagram/Functional Diagram"],["LTG","Lighting Layout/Plan/Details,Emergency Lighiting"],["MCC","Motor Control Center"],["MDF","Main Distribution Frame"],["MDT","Misc Mecnanitcal Details"],["MSD","Material Selection Diagram"],["MTL","List of Material, Bill of Material"],["OSI","On-Stream Inspection"],["PDT","Misc Piping Det/Layout/Section/Elevation"],["PER","Security Fence Plan/Layout/Detail"],["PFD","Process Flow Diagram"],["PID","Piping and Instrument Diagram"],["PLB","Plumbing Detail/Layout,Drain/Vent Piping"],["PNL","Instrument/Local Control Panel Layout/Arragenement"],["PPL","Piping Plan/Index/Arranegemnt/Routing"],["PRF","Plant & Profile, Pipeline Alignment"],["PRS","Prespective View"],["RAK","Rack Layout/Face Elev, Cable Rack"],["RPF","Radio Path Profile, Radiation Profile"],["SCE","IDAS Network Plan/Layout/Detail"],["SCH","Schedule (Name Plate/Lubr/Tie-In/Misc)"],["SCM","Schematic/Operating/Block/Principle Diagram"],["SDS","Smart Data Sheet"],["SDT","Structural Det,Framing Plan, Roof frame"],["SIS","Safety Instruction Sheet (Equipment/Instrument)"],["SPP","Area Map"],["SSD","Security Fence & Related Drawings, Comp Gate"],["STD","Standard Drawing"],["STL","Steel Bending Details/Rebar Schedules"],["SWG","SwitchGear Specificaiton and Arranegement"],["TAB","Tabulation Electrical Load"],["TOP","Topographic & Contour Map"],["TRM","Terminal Layout"],["UTI","Utility (RW/DW/Steam/Tel/AC/FW/Gas/Electricity)"],["VOD","Valve Operating Diagram"]];
-function freshState(){return{nid:1,types:STD.map(function(p){return p[1]}),abbr:STD.map(function(p){return p[0]}),size:STD.map(function(p){return SIZE_DEFAULTS[p[0]]||'A'}),sizeV:2,factor:{A:1,B:0.5,C:null,D:0.25,E:0.08},eq:[],rows:[],deliv:[],cost:{hpd:0}}}
+function freshState(){return{nid:1,types:STD.map(function(p){return p[1]}),abbr:STD.map(function(p){return p[0]}),size:STD.map(function(p){return SIZE_DEFAULTS[p[0]]||'A'}),sizeV:2,factor:{A:1,B:0.5,C:null,D:0.25,E:0.08},eq:[],rows:[],deliv:[],cost:{hpd:0},estimates:[{id:1,name:'Estimate 1',plants:['H1']},{id:2,name:'Estimate 2',plants:['H4','M1','W1']}]}}
 /* old installs still holding the Drawing_Type_XX placeholders get the standard list */
 function upgradePlaceholders(){
   if(S.types.length>STD.length||!S.types.every(function(t){return /^Drawing_Type_\d+$/.test(t)}))return;
@@ -456,10 +455,51 @@ function discOpts(cur,ph){return'<option value="">'+ph+'</option>'+DISC.map(func
 var PLANTS=['H4','H1','M1','W1'];
 function canonPlant(s){s=sval(s).toLowerCase();for(var i=0;i<PLANTS.length;i++)if(PLANTS[i].toLowerCase()===s)return PLANTS[i];return null}
 function plantOpts(cur,ph){return'<option value="">'+ph+'</option>'+PLANTS.map(function(d){return'<option'+(d===cur?' selected':'')+'>'+d+'</option>'}).join('')}
+/* ---- estimates ---- */
+var G={est:0};try{G.est=+localStorage.getItem('drawingTracker.v2.est')||0}catch(e){}
+function fixEstimates(){
+  if(!S.estimates||!S.estimates.length)S.estimates=[{id:1,name:'Estimate 1',plants:['H1']},{id:2,name:'Estimate 2',plants:['H4','M1','W1']}];
+  (S.deliv||[]).forEach(function(d){if(d.est==null)d.est=0});
+  if(G.est&&!estById(G.est))G.est=0;
+}
+function estById(id){return S.estimates.filter(function(x){return x.id===id})[0]||null}
+function estOfPlant(p){var e=S.estimates.filter(function(x){return x.plants.indexOf(p)>=0})[0];return e?e.id:0}
+function inEst(plant,id){if(!id)return true;var e=estById(id);return !!e&&e.plants.indexOf(plant)>=0}
+function estName(id){var e=estById(id);return e?e.name:'All estimates'}
+function estSegHTML(){return'<div class="seg">'+[[0,'All']].concat(S.estimates.map(function(e){return[e.id,e.name]})).map(function(o){return'<button data-est="'+o[0]+'"'+(o[0]===G.est?' class="on"':'')+'>'+esc(o[1])+'</button>'}).join('')+'</div>'}
+function renderEstBars(){
+  var e=estById(G.est),txt=e?'Plants: '+(e.plants.join(', ')||'none'):'All plants';
+  [].forEach.call(document.querySelectorAll('.estsw'),function(n){n.innerHTML=estSegHTML()});
+  [].forEach.call(document.querySelectorAll('.estplants'),function(n){n.textContent=txt});
+}
+function setEst(id){G.est=id;try{localStorage.setItem('drawingTracker.v2.est',String(id))}catch(e){}fillLists();renderEstBars();renderReg();renderSummary();renderQty();renderDeliv()}
+document.addEventListener('click',function(ev){var b=ev.target.closest('.estsw button[data-est]');if(b)setEst(+b.dataset.est)});
+function estFile(){return G.est?'_'+estName(G.est).replace(/[^A-Za-z0-9]+/g,'_'):''}
+function estOpts(cur){return'<option value="0">— select —</option>'+S.estimates.map(function(e){return'<option value="'+e.id+'"'+(e.id===cur?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')}
+function renderEstSetup(){
+  var box=$('#est-setup');
+  if(box.contains(document.activeElement)&&document.activeElement.type==='text')return;
+  box.innerHTML=S.estimates.map(function(e){
+    return'<div class="row" style="margin-bottom:8px"><input type="text" data-en="'+e.id+'" value="'+esc(e.name)+'" style="width:150px;font-weight:600">'+
+      PLANTS.map(function(p){return'<label class="chk"><input type="checkbox" data-ep="'+e.id+'|'+p+'"'+(e.plants.indexOf(p)>=0?' checked':'')+'> '+p+'</label>'}).join('')+'</div>'}).join('');
+  var un=PLANTS.filter(function(p){return!estOfPlant(p)});
+  var used=un.filter(function(p){return S.rows.some(function(r){return r.plant===p})});
+  $('#est-warn').textContent=un.length?'Not in any estimate: '+un.join(', ')+(used.length?' — register rows of '+used.join(', ')+' are not counted in any estimate.':'.'):'';
+}
+$('#est-setup').addEventListener('change',function(ev){
+  var t=ev.target;
+  if(t.dataset.en){var e=estById(+t.dataset.en);if(e){e.name=t.value.trim()||e.name;commit()}return}
+  if(t.dataset.ep){
+    var pr=t.dataset.ep.split('|'),id=+pr[0],p=pr[1];
+    S.estimates.forEach(function(e){e.plants=e.plants.filter(function(x){return x!==p})});
+    if(t.checked){var e2=estById(id);e2.plants.push(p);e2.plants.sort(function(a,b){return PLANTS.indexOf(a)-PLANTS.indexOf(b)})}
+    commit();
+  }
+});
 var R={q:'',d:'',p:'',hide:false,st:0}, E={q:'',d:'',hide:false,st:1};
 
 function commit(){save();fillLists();renderAll()}
-function renderAll(){renderEq();renderReg();renderSummary();renderFac();renderQty();renderDeliv();renderCost();renderTypes();renderHub()}
+function renderAll(){renderEstBars();renderEstSetup();renderEq();renderReg();renderSummary();renderFac();renderQty();renderDeliv();renderCost();renderTypes();renderHub()}
 
 /* ================= lists / selects ================= */
 function uniq(arr){var s={};arr.forEach(function(x){if(x)s[x]=1});return Object.keys(s).sort()}
@@ -478,9 +518,10 @@ function fillLists(){
   $('#qaPlant').innerHTML=plantOpts($('#qaPlant').value,'— Plant —');
   E.d=setOpts($('#e-fd'),discs,'All disciplines',E.d);
   R.d=setOpts($('#r-fd'),discs,'All disciplines',R.d);
-  R.p=setOpts($('#r-fp'),plants,'All plants',R.p);
+  var ePl=G.est&&estById(G.est)?estById(G.est).plants:plants;
+  R.p=setOpts($('#r-fp'),ePl,'All plants',R.p);
   Q.d=setOpts($('#q-fd'),discs,'All disciplines',Q.d);
-  Q.p=setOpts($('#q-fp'),plants,'All plants',Q.p);
+  Q.p=setOpts($('#q-fp'),ePl,'All plants',Q.p);
   var keep=$('#qaEq').value;
   $('#qaEq').innerHTML=eqOptions(+keep||null);
   $('#r-noeq').classList.toggle('hide',S.eq.length>0);
@@ -490,7 +531,7 @@ function fillLists(){
 function startEdit(td,kind,val,apply,list){
   if(td.querySelector('input,select'))return;
   var el;
-  if(kind==='sel'||kind==='disc'||kind==='plant'){el=document.createElement('select');el.innerHTML=kind==='sel'?eqOptions(val):(kind==='disc'?discOpts(val,'— select —'):plantOpts(val,'— select —'))}
+  if(kind==='sel'||kind==='disc'||kind==='plant'||kind==='est'){el=document.createElement('select');el.innerHTML=kind==='sel'?eqOptions(val):(kind==='disc'?discOpts(val,'— select —'):(kind==='est'?estOpts(val):plantOpts(val,'— select —')))}
   else{el=document.createElement('input');el.type='text';el.value=kind==='num'?(num(val)||''):(val||'');
     if(kind==='num')el.setAttribute('inputmode','decimal');
     if(list)el.setAttribute('list',list)}
@@ -499,7 +540,7 @@ function startEdit(td,kind,val,apply,list){
   var done=false;
   function fin(ok){
     if(done)return;done=true;
-    if(ok){var v=el.value.trim();apply(kind==='num'?num(v):(kind==='sel'?(v?+v:null):v))}
+    if(ok){var v=el.value.trim();apply(kind==='num'?num(v):(kind==='sel'?(v?+v:null):(kind==='est'?(+v||0):v)))}
     commit();
   }
   el.addEventListener('blur',function(){fin(true)});
@@ -628,6 +669,7 @@ function renderReg(){
     var e=M[r.eqId];
     if(R.d&&(!e||e.discipline!==R.d))return;
     if(R.p&&r.plant!==R.p)return;
+    if(!inEst(r.plant,G.est))return;
     if(q&&((e?eqLabel(e):'')+' '+r.plant).toLowerCase().indexOf(q)<0)return;
     idx.push(i)});
   var cols=[];
@@ -662,7 +704,7 @@ function renderReg(){
   colT.forEach(function(v){h+='<td>'+fmt(v)+'</td>'});
   h+='<td></td></tr></tfoot>';
   $('#r-tbl').innerHTML=h;
-  $('#r-info').textContent=idx.length+' of '+S.rows.length+' rows · '+cols.length+' of '+S.types.length+' drawing types shown · drawing-type columns show '+stName(R.st);
+  $('#r-info').textContent=estName(G.est)+' · '+idx.length+' of '+S.rows.length+' rows · '+cols.length+' of '+S.types.length+' drawing types shown · drawing-type columns show '+stName(R.st);
 }
 $('#r-tbl').addEventListener('click',function(ev){
   var b=ev.target.closest('button[data-del]');
@@ -695,6 +737,7 @@ function renderSummary(){
   var M=eqMap(),total=0,units=0,perT=zeros(),byD={},byP={},byE={};
   S.rows.forEach(function(r){
     var e=M[r.eqId];if(!e)return;
+    if(!inEst(r.plant,G.est))return;
     var q=num(r.quantity),rt=0;units+=q;
     S.types.forEach(function(_,c){var x=pu(e,c,R.st)*q;perT[c]+=x;rt+=x});
     total+=rt;
@@ -705,7 +748,7 @@ function renderSummary(){
   $('#byS').innerHTML='<tr><th>Size</th><th>Types</th><th>Drawings</th></tr>'+SIZES.map(function(z){return'<tr><td>Size '+z+'</td><td>'+S.size.filter(function(x){return x===z}).length+'</td><td><b>'+fmt(bySize[z])+'</b></td></tr>'}).join('');
   var used=perT.filter(function(v){return v>0}).length;
   $('#kpis').innerHTML=
-    '<div class="kpi"><b>'+fmt(total)+'</b><span>Drawings required ('+stName(R.st)+')</span></div>'+
+    '<div class="kpi"><b>'+fmt(total)+'</b><span>Drawings required ('+esc(estName(G.est))+' · '+stName(R.st)+')</span></div>'+
     '<div class="kpi"><b>'+S.rows.length+'</b><span>Register rows ('+fmt(units)+' units)</span></div>'+
     '<div class="kpi"><b>'+Object.keys(byP).length+'</b><span>Plants / buildings</span></div>'+
     '<div class="kpi"><b>'+used+' / '+S.types.length+'</b><span>Drawing types in use</span></div>';
@@ -838,43 +881,44 @@ function importReg(m){
 }
 function regMatrix(){
   var hd=function(s){return S.types.map(function(t){return t+' (Stage '+s+')'})};
-  var M=eqMap(),m=[['Plant','Discipline','Equipment','Variant','Quantity','Stage 1 dwgs','Stage 2 dwgs','Total dwgs'].concat(hd(1),hd(2))];
-  S.rows.forEach(function(r){var e=M[r.eqId],q=num(r.quantity);
+  var M=eqMap(),m=[['Estimate','Plant','Discipline','Equipment','Variant','Quantity','Stage 1 dwgs','Stage 2 dwgs','Total dwgs'].concat(hd(1),hd(2))];
+  S.rows.forEach(function(r){if(!inEst(r.plant,G.est))return;var e=M[r.eqId],q=num(r.quantity),en=estOfPlant(r.plant);
     var a=S.types.map(function(_,c){return e?pu(e,c,1)*q:0}),b=S.types.map(function(_,c){return e?pu(e,c,2)*q:0});
     var s1=a.reduce(function(x,y){return x+y},0),s2=b.reduce(function(x,y){return x+y},0);
-    m.push([r.plant,e?e.discipline:'',e?e.name:'',e?e.variant:'',q,fmt(s1),fmt(s2),fmt(s1+s2)].concat(a.map(fmt),b.map(fmt)))});
+    m.push([en?estName(en):'',r.plant,e?e.discipline:'',e?e.name:'',e?e.variant:'',q,fmt(s1),fmt(s2),fmt(s1+s2)].concat(a.map(fmt),b.map(fmt)))});
   return m}
 $('#r-doPaste').addEventListener('click',function(){
   var t=$('#r-paste').value;if(!t.trim()){toast('Paste data first');return}
   importReg(parseDelim(t));$('#r-paste').value=''});
 $('#r-file').addEventListener('change',function(){readFileInto(this,importReg)});
-$('#r-exCsv').addEventListener('click',function(){exportCsv('drawings_register',regMatrix())});
-$('#r-exXlsx').addEventListener('click',function(){exportXlsx('drawings_register','Register',regMatrix())});
+$('#r-exCsv').addEventListener('click',function(){exportCsv('drawings_register'+estFile(),regMatrix())});
+$('#r-exXlsx').addEventListener('click',function(){exportXlsx('drawings_register'+estFile(),'Register',regMatrix())});
 $('#r-clear').addEventListener('click',function(){
   if(!confirm('Delete ALL register rows?'))return;S.rows=[];commit();toast('Register cleared')});
 
 /* ================= Drawing Quantities Module ================= */
 var Q={d:'',p:'',hide:true,st:0};
-function perTypeQty(d,p,st){
+function perTypeQty(d,p,st,est){
   var M=eqMap(),perT=zeros();
   S.rows.forEach(function(r){
     var e=M[r.eqId];if(!e)return;
     if(d&&e.discipline!==d)return;
     if(p&&r.plant!==p)return;
+    if(est&&!inEst(r.plant,est))return;
     var q=num(r.quantity);
     S.types.forEach(function(_,c){perT[c]+=pu(e,c,st||0)*q})});
   return perT}
 function qtyCols(){return SIZES.filter(function(z){return z!=='C'||S.size.indexOf('C')>=0})}
 function qtyMatrix(){
-  var perT=perTypeQty(Q.d,Q.p,Q.st),cols=qtyCols();
-  var m=[['Stage: '+stName(Q.st)],['Abbreviation','Description','Drawing Size'].concat(cols.map(function(z){return'Quantity of '+z+' drawings'})).concat(['Equivalent A-size drawings'])];
+  var perT=perTypeQty(Q.d,Q.p,Q.st,G.est),cols=qtyCols();
+  var m=[['Estimate: '+estName(G.est)+(G.est?' ('+estById(G.est).plants.join(', ')+')':'')],['Stage: '+stName(Q.st)],['Abbreviation','Description','Drawing Size'].concat(cols.map(function(z){return'Quantity of '+z+' drawings'})).concat(['Equivalent A-size drawings'])];
   S.types.forEach(function(t,c){
     if(Q.hide&&!perT[c])return;
     var f=S.factor[S.size[c]];
     m.push([S.abbr[c],t,S.size[c]].concat(cols.map(function(z){return S.size[c]===z?fmt(perT[c]):0})).concat([f==null?'':fmt(perT[c]*f)]))});
   return m}
 function renderQty(){
-  var perT=perTypeQty(Q.d,Q.p,Q.st),cols=qtyCols();
+  var perT=perTypeQty(Q.d,Q.p,Q.st,G.est),cols=qtyCols();
   $('#q-st').innerHTML=segHTML(Q.st,ST_ALL);
   var h='<thead><tr><th class="dt">Drawing Type</th><th>Drawing Size</th>'+cols.map(function(z){return'<th style="text-align:right">Quantity of '+z+' drawings</th>'}).join('')+'<th style="text-align:right">Equivalent A-size drawings</th></tr></thead><tbody>';
   var tot={},shown=0,totEq=0,noFac={};cols.forEach(function(z){tot[z]=0});
@@ -895,7 +939,7 @@ function renderQty(){
   h+='</tbody><tfoot><tr><td class="dt">Total ('+fmt(g)+' drawings)</td><td></td>'+cols.map(function(z){return'<td>'+fmt(tot[z])+'</td>'}).join('')+'<td>'+fmt(totEq)+'</td></tr></tfoot>';
   $('#q-tbl').innerHTML=h;
   var nf=Object.keys(noFac);
-  $('#q-info').textContent=stName(Q.st)+' · '+shown+' of '+S.types.length+' drawing types shown · '+fmt(totEq)+' equivalent A-size drawings'+(nf.length?' · no conversion factor set for size '+nf.join(', ')+' (not counted)':'');
+  $('#q-info').textContent=estName(G.est)+' · '+stName(Q.st)+' · '+shown+' of '+S.types.length+' drawing types shown · '+fmt(totEq)+' equivalent A-size drawings'+(nf.length?' · no conversion factor set for size '+nf.join(', ')+' (not counted)':'');
 }
 function renderFac(){
   var box=$('#q-fac');if(box.contains(document.activeElement))return;
@@ -908,8 +952,8 @@ $('#q-fd').addEventListener('change',function(){Q.d=this.value;renderQty()});
 $('#q-fp').addEventListener('change',function(){Q.p=this.value;renderQty()});
 $('#q-hide').addEventListener('change',function(){Q.hide=this.checked;renderQty()});
 $('#q-st').addEventListener('click',function(ev){var b=ev.target.closest('button[data-st]');if(!b)return;Q.st=+b.dataset.st;renderQty()});
-$('#q-exCsv').addEventListener('click',function(){exportCsv('drawing_quantities',qtyMatrix())});
-$('#q-exXlsx').addEventListener('click',function(){exportXlsx('drawing_quantities','Quantities',qtyMatrix())});
+$('#q-exCsv').addEventListener('click',function(){exportCsv('drawing_quantities'+estFile(),qtyMatrix())});
+$('#q-exXlsx').addEventListener('click',function(){exportXlsx('drawing_quantities'+estFile(),'Quantities',qtyMatrix())});
 
 /* ================= Other Deliverables ================= */
 var D={q:''};
@@ -917,22 +961,26 @@ function usd(n){return Number(n).toLocaleString('en-US',{minimumFractionDigits:2
 function renderDeliv(){
   var q=D.q.toLowerCase(),idx=[];
   S.deliv.forEach(function(r,i){
+    if(G.est&&r.est!==G.est)return;
     if(q&&(r.phase+' '+r.type+' '+r.name).toLowerCase().indexOf(q)<0)return;
     idx.push(i)});
-  var h='<thead><tr><th>#</th><th>Phase</th><th>Type</th><th>Deliverable Name</th><th style="text-align:right">Cost (USD)</th><th></th></tr></thead><tbody>';
+  var h='<thead><tr><th>#</th><th>Estimate</th><th>Phase</th><th>Type</th><th>Deliverable Name</th><th style="text-align:right">Cost (USD)</th><th></th></tr></thead><tbody>';
   var totCost=0;
-  if(!idx.length)h+='<tr><td class="empty" colspan="6">'+(S.deliv.length?'No deliverables match the search.':'Blank sheet. Press “+ Row” to start, or import from Excel below.')+'</td></tr>';
+  if(!idx.length)h+='<tr><td class="empty" colspan="7">'+(S.deliv.length?'No deliverables match the search / estimate.':'Blank sheet. Press “+ Row” to start, or import from Excel below.')+'</td></tr>';
   idx.forEach(function(i,k){
     var r=S.deliv[i],cs=num(r.cost);totCost+=cs;
     h+='<tr data-i="'+i+'"><td class="n">'+(k+1)+'</td>'+
+      '<td class="t ed'+(estById(r.est)?'':' warn')+'" data-f="est" style="min-width:110px">'+(estById(r.est)?esc(estName(r.est)):'— select —')+'</td>'+
       '<td class="t ed" data-f="phase" style="min-width:130px">'+esc(r.phase)+'</td>'+
       '<td class="t ed" data-f="type" style="min-width:130px">'+esc(r.type)+'</td>'+
       '<td class="t ed" data-f="name" style="min-width:320px">'+esc(r.name)+'</td>'+
       '<td class="n ed'+(cs?'':' z')+'" data-f="cost" style="min-width:110px">'+(cs?usd(cs):'·')+'</td>'+
       '<td class="x"><button data-del="'+i+'" title="Delete row">✕</button></td></tr>'});
-  h+='</tbody><tfoot><tr><td></td><td></td><td></td><td>Total (USD)</td><td>'+usd(totCost)+'</td><td></td></tr></tfoot>';
+  h+='</tbody><tfoot><tr><td></td><td></td><td></td><td></td><td>Total (USD)</td><td>'+usd(totCost)+'</td><td></td></tr></tfoot>';
   $('#d-tbl').innerHTML=h;
-  $('#d-info').textContent=idx.length+' of '+S.deliv.length+' deliverables · total USD '+usd(totCost);
+  var per=S.estimates.map(function(e){var s=0;S.deliv.forEach(function(r){if(r.est===e.id)s+=num(r.cost)});return e.name+': USD '+usd(s)}).join(' · ');
+  var un=S.deliv.filter(function(r){return!estById(r.est)}).length;
+  $('#d-info').textContent=idx.length+' of '+S.deliv.length+' deliverables shown · '+per+(un?' · '+un+' row(s) with no estimate (not counted)':'');
   $('#dphDL').innerHTML=uniq(S.deliv.map(function(r){return r.phase})).map(function(v){return'<option value="'+esc(v)+'">'}).join('');
   $('#dtyDL').innerHTML=uniq(S.deliv.map(function(r){return r.type})).map(function(v){return'<option value="'+esc(v)+'">'}).join('');
 }
@@ -942,53 +990,61 @@ $('#d-tbl').addEventListener('click',function(ev){
   var td=ev.target.closest('td.ed');if(!td)return;
   var r=S.deliv[+td.parentNode.dataset.i],f=td.dataset.f;
   if(f==='cost')startEdit(td,'num',r.cost,function(v){r.cost=v});
+  else if(f==='est')startEdit(td,'est',r.est,function(v){r.est=v});
   else startEdit(td,'text',r[f],function(v){r[f]=v},f==='phase'?'dphDL':(f==='type'?'dtyDL':null))});
 $('#d-q').addEventListener('input',function(){D.q=this.value;renderDeliv()});
 $('#d-add').addEventListener('click',function(){
   if(D.q){D.q='';$('#d-q').value=''}
-  S.deliv.push({id:nid(),phase:'',type:'',name:'',cost:0});commit();
+  S.deliv.push({id:nid(),est:G.est||(S.estimates[0]&&S.estimates[0].id)||0,phase:'',type:'',name:'',cost:0});commit();
   var w=$('#d-tbl').parentNode;w.scrollTop=w.scrollHeight;
-  var tds=$('#d-tbl').querySelectorAll('tbody tr:last-child td.ed');if(tds[0])tds[0].click()});
+  var td=$('#d-tbl').querySelector('tbody tr:last-child td.ed[data-f="phase"]');if(td)td.click()});
 function importDeliv(m){
   m=cleanMatrix(m);
   if(m.length<2){toast('No data rows found');return}
-  var head=m[0].map(sval),iP=-1,iT=-1,iN=-1,iC=-1;
+  var head=m[0].map(sval),iP=-1,iT=-1,iN=-1,iC=-1,iE=-1;
   head.forEach(function(x,i){var n=norm(x);
-    if(n==='cost'||n==='costusd'||n==='usd')iC=i;else if(n==='phase')iP=i;else if(n==='type')iT=i;else if(n==='deliverablename'||n==='deliverable'||n==='name')iN=i});
+    if(n==='estimate')iE=i;else if(n==='cost'||n==='costusd'||n==='usd')iC=i;else if(n==='phase')iP=i;else if(n==='type')iT=i;else if(n==='deliverablename'||n==='deliverable'||n==='name')iN=i});
   if(iP<0||iT<0||iN<0){toast('Missing columns: '+(iP<0?'Phase ':'')+(iT<0?'Type ':'')+(iN<0?'Deliverable Name':''));return}
   var add=0;
   m.slice(1).forEach(function(r){
-    var o={id:nid(),phase:sval(r[iP]),type:sval(r[iT]),name:sval(r[iN]),cost:iC>=0?num(String(r[iC]).replace(/[$,\s]/g,'')):0};
+    var ev=iE>=0?sval(r[iE]).toLowerCase():'',eid=G.est||0;
+    if(ev){var hit=S.estimates.filter(function(e){return e.name.toLowerCase()===ev||String(e.id)===ev||('estimate'+e.id)===ev.replace(/\s+/g,'')})[0];eid=hit?hit.id:0}
+    var o={id:nid(),est:eid,phase:sval(r[iP]),type:sval(r[iT]),name:sval(r[iN]),cost:iC>=0?num(String(r[iC]).replace(/[$,\s]/g,'')):0};
     if(!o.phase&&!o.type&&!o.name)return;
     S.deliv.push(o);add++});
   commit();toast(add+' rows imported')}
 function delivMatrix(){
-  var m=[['Phase','Type','Deliverable Name','Cost (USD)']];
-  S.deliv.forEach(function(r){m.push([r.phase,r.type,r.name,num(r.cost)])});return m}
+  var m=[['Estimate','Phase','Type','Deliverable Name','Cost (USD)']];
+  S.deliv.forEach(function(r){if(G.est&&r.est!==G.est)return;m.push([estById(r.est)?estName(r.est):'',r.phase,r.type,r.name,num(r.cost)])});return m}
 $('#d-doPaste').addEventListener('click',function(){
   var t=$('#d-paste').value;if(!t.trim()){toast('Paste data first');return}
   importDeliv(parseDelim(t));$('#d-paste').value=''});
 $('#d-file').addEventListener('change',function(){readFileInto(this,importDeliv)});
-$('#d-exCsv').addEventListener('click',function(){exportCsv('other_deliverables',delivMatrix())});
-$('#d-exXlsx').addEventListener('click',function(){exportXlsx('other_deliverables','Deliverables',delivMatrix())});
+$('#d-exCsv').addEventListener('click',function(){exportCsv('other_deliverables'+estFile(),delivMatrix())});
+$('#d-exXlsx').addEventListener('click',function(){exportXlsx('other_deliverables'+estFile(),'Deliverables',delivMatrix())});
 $('#d-clear').addEventListener('click',function(){
   if(!S.deliv.length)return;
   if(!confirm('Delete ALL deliverable rows?'))return;S.deliv=[];commit();toast('Cleared')});
 
 /* ================= Cost Estimate Page ================= */
 function fnum(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:2})}
-function equivA(st){
-  var perT=perTypeQty('','',st||0),tot=0,miss={};
+function equivA(st,est){
+  var perT=perTypeQty('','',st||0,est),tot=0,miss={};
   perT.forEach(function(v,c){
     if(!v)return;var f=S.factor[S.size[c]];
     if(f==null)miss[S.size[c]]=1;else tot+=v*f});
   return{tot:tot,miss:Object.keys(miss)}}
+function estCost(id){var a=equivA(1,id),b=equivA(2,id);return{s1:a.tot,s2:b.tot,tot:a.tot+b.tot,miss:a.miss.concat(b.miss)}}
 function renderCost(){
-  var e=equivA(),hpd=num(S.cost.hpd);
-  $('#c-qty').textContent=fnum(e.tot);
-  $('#c-tot').textContent=fnum(e.tot*hpd);
-  var e1=equivA(1),e2=equivA(2);
-  $('#c-split').textContent='Includes Stage 1: '+fnum(e1.tot)+' equivalent A-size drawings ('+fnum(e1.tot*hpd)+' hours) · Stage 2: '+fnum(e2.tot)+' ('+fnum(e2.tot*hpd)+' hours).';
+  var hpd=num(S.cost.hpd),miss={},T={s1:0,s2:0,tot:0};
+  var h='<thead><tr><th>Estimate</th><th>Plants</th><th style="text-align:right">Stage 1 equiv. A-size dwgs</th><th style="text-align:right">Stage 2 equiv. A-size dwgs</th><th style="text-align:right">Equivalent A-size dwgs</th><th style="text-align:right">Hours per Drawing</th><th style="text-align:right">Total Hours</th></tr></thead><tbody>';
+  S.estimates.forEach(function(es){
+    var c=estCost(es.id);c.miss.forEach(function(z){miss[z]=1});
+    T.s1+=c.s1;T.s2+=c.s2;T.tot+=c.tot;
+    h+='<tr><td class="t"><b>'+esc(es.name)+'</b></td><td class="t">'+esc(es.plants.join(', ')||'—')+'</td><td class="n">'+fnum(c.s1)+'</td><td class="n">'+fnum(c.s2)+'</td><td class="n" style="font-weight:600">'+fnum(c.tot)+'</td><td class="n">'+fnum(hpd)+'</td><td class="n tot">'+fnum(c.tot*hpd)+'</td></tr>'});
+  h+='</tbody><tfoot><tr><td style="text-align:left">Total</td><td></td><td>'+fnum(T.s1)+'</td><td>'+fnum(T.s2)+'</td><td>'+fnum(T.tot)+'</td><td></td><td>'+fnum(T.tot*hpd)+'</td></tr></tfoot>';
+  $('#c-tbl').innerHTML=h;
+  var e={miss:Object.keys(miss)};
   var inp=$('#c-hpd');
   if(document.activeElement!==inp)inp.value=hpd?hpd:'';
   $('#c-warn').textContent=e.miss.length?'Note: no conversion factor is set for size '+e.miss.join(', ')+', so those drawings are not counted (set it in the Drawing Quantities Module).':'';
@@ -1000,7 +1056,7 @@ function renderHub(){
   $('#h-eq').textContent=S.eq.length+' equipment type'+(S.eq.length===1?'':'s')+' · '+S.types.length+' drawing types';
   var tq=0;perTypeQty('','').forEach(function(v){tq+=v});
   $('#h-q').textContent=fmt(tq)+' drawings required';
-  var ea=equivA();$('#h-c').textContent=fnum(ea.tot*num(S.cost.hpd))+' total hours';
+  $('#h-c').textContent=S.estimates.map(function(es){return es.name+': '+fnum(estCost(es.id).tot*num(S.cost.hpd))+' h'}).join(' · ');
   $('#h-d').textContent=S.deliv.length+' deliverable'+(S.deliv.length===1?'':'s');
   $('#h-reg').textContent=S.rows.length+' register row'+(S.rows.length===1?'':'s');
 }
@@ -1014,7 +1070,7 @@ $('#jsonFile').addEventListener('change',function(){
       if(!o.types||!o.eq||!o.rows)throw 0;
       if(!confirm('Replace ALL current data with this backup?')){inp.value='';return}
       var mx=0;o.eq.concat(o.rows).forEach(function(x){if(x.id>mx)mx=x.id});
-      o.nid=Math.max(o.nid||1,mx+1);S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();fixStages();applySizeDefaults();commit();toast('Backup restored')}
+      o.nid=Math.max(o.nid||1,mx+1);S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();fixStages();applySizeDefaults();fixEstimates();commit();toast('Backup restored')}
     catch(e){toast('Not a valid backup file')}
     inp.value='';
   };fr.readAsText(f)});
@@ -1068,7 +1124,7 @@ function hasData(){return S.eq.length||S.rows.length||S.deliv.length}
 function normalizeLoaded(o){
   var mx=0;(o.eq||[]).concat(o.rows||[],o.deliv||[]).forEach(function(x){if(x.id>mx)mx=x.id});
   o.nid=Math.max(o.nid||1,mx+1);
-  S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();fixStages();applySizeDefaults();
+  S=o;S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();fixStages();applySizeDefaults();fixEstimates();
 }
 function cloudUI(){
   $('#cl-banner').classList.toggle('hide',!!cUser||!sb);
@@ -1091,7 +1147,7 @@ function cloudPush(manual){
   return sb.from(CLOUD_TABLE).upsert({key:CLOUD_KEY,value:S,updated_at:stamp}).then(function(r){
     cBusy=false;
     if(r.error){cStat('Cloud save failed: '+r.error.message,'err');if(manual)toast('Cloud save failed');return}
-    cStat('Saved to cloud · '+cWhen(stamp),'on');if(manual)toast('Saved to cloud');
+    setDirty(false);cStat('Saved to cloud · '+cWhen(stamp),'on');if(manual)toast('Saved to cloud');
     if(cAgain){cAgain=false;cloudPush()}
   },function(){cBusy=false;cStat('Cloud save failed (offline?) — data is safe in this browser','err')});
 }
@@ -1109,12 +1165,12 @@ function cloudPull(ask){
       return cloudPush();
     }
     var cloudT=r.data.updated_at, localT=S.savedAt||'';
-    /* cloud is newer (or this browser is empty) -> just load it; only ask when this browser has newer, unsynced changes */
-    var take=!ask||!hasData()||!localT||new Date(cloudT)>=new Date(localT);
+    /* load the cloud copy unless this browser has edits that were never saved to the cloud */
+    var take=!ask||!hasData()||!isDirty();
     if(!take&&!autoOn()){
-      cStat('This browser has changes newer than the cloud copy (saved '+cWhen(cloudT)+'). Nothing was uploaded — use “Save to cloud now” or “Load from cloud”.','busy');return}
+      cStat('This browser has edits not saved to the cloud yet (cloud copy saved '+cWhen(cloudT)+'). Nothing was uploaded or loaded — use “Save to cloud now” to keep your edits, or “Load from cloud” to replace them.','busy');return}
     if(!take){
-      take=confirm('This browser has changes (saved '+cWhen(localT)+') that are NEWER than the cloud copy (saved '+cWhen(cloudT)+').\n\nOK = upload this browser\u2019s data to the cloud\nCancel = discard them and load the cloud copy');
+      take=confirm('This browser has edits (saved '+cWhen(localT)+') that were never saved to the cloud (cloud copy saved '+cWhen(cloudT)+').\n\nOK = upload this browser\u2019s data to the cloud\nCancel = discard them and load the cloud copy');
       if(take)return cloudPush(true);
     }
     var cq=window.cloudQueue;window.cloudQueue=null;
@@ -1122,7 +1178,7 @@ function cloudPull(ask){
       try{localStorage.setItem(KEY+'.prev',JSON.stringify({at:new Date().toISOString(),data:S}))}catch(e){}
     }
     normalizeLoaded(r.data.value);S.savedAt=cloudT;
-    try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+    persist();setDirty(false);
     fillLists();renderAll();
     window.cloudQueue=cq;
     cStat('Loaded from cloud · '+cWhen(cloudT),'on');toast('Cloud data loaded');prevUI();
@@ -1178,7 +1234,7 @@ $('#cl-auto').addEventListener('change',function(){
 /* ================= boot ================= */
 S=load();
 if(!S||!S.types||!S.eq||!S.rows)S=freshState();
-S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();upgradePlaceholders();fixAbbr();fixStages();applySizeDefaults();S.eq.forEach(function(e){var c=canonDisc(e.discipline);if(c)e.discipline=c});S.rows.forEach(function(r){var c=canonPlant(r.plant);if(c)r.plant=c});save();
+S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();upgradePlaceholders();fixAbbr();fixStages();applySizeDefaults();S.eq.forEach(function(e){var c=canonDisc(e.discipline);if(c)e.discipline=c});S.rows.forEach(function(r){var c=canonPlant(r.plant);if(c)r.plant=c});fixEstimates();persist();
 fillLists();renderAll();route();prevUI();
 </script>
 </body>

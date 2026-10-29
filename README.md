@@ -4,6 +4,9 @@ Engineering project hub — a single-file HTML web app (no database, no build st
 
 Open `index.html` in any browser, or enable GitHub Pages for this repo to use it online.
 
+## Estimates
+Plants are grouped into estimates on the front page (default: **Estimate 1** = H1, **Estimate 2** = H4, M1, W1). Each plant belongs to one estimate; an Estimate switch in the Register, Drawing Quantities and Other Deliverables modules filters by estimate, and the Cost Estimate Page shows the estimates side by side.
+
 ## Modules
 - **Equipment Types Module** — define each equipment type once (Discipline, Name, optional Variant) with the drawings needed per one unit, per drawing type, for Stage 1 and Stage 2. Also manages the drawing types (abbreviation, full name, drawing size).
 - **Drawings Register Module** — pick Plant (H4, H1, M1, W1), equipment and quantity; drawings required per drawing type are calculated automatically.
