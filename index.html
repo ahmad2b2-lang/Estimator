@@ -177,6 +177,8 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
       </div>
     </div>
     <p class="sm" style="margin-bottom:0"><span class="dot" id="cl-dot"></span><span id="cl-status">Connecting…</span></p>
+    <div class="note hide" id="cl-prev" style="margin:10px 0 0">The cloud copy replaced the data that was in this browser. A copy of the old browser data (<span id="cl-prevAt"></span>) was kept.
+      <div class="row" style="margin-top:8px"><button class="b" id="cl-prevDl">Download it (JSON)</button><button class="b" id="cl-prevRestore">Restore it</button><button class="b" id="cl-prevDrop" style="margin-left:auto">Dismiss</button></div></div>
   </div>
   <div class="card" style="margin-top:12px">
     <h2>Data (all modules)</h2>
@@ -1107,13 +1109,24 @@ function cloudPull(ask){
       if(take)return cloudPush(true);
     }
     var cq=window.cloudQueue;window.cloudQueue=null;
+    if(hasData()&&JSON.stringify(S.eq)+JSON.stringify(S.rows)+JSON.stringify(S.deliv)!==JSON.stringify(v.eq)+JSON.stringify(v.rows)+JSON.stringify(v.deliv||[])){
+      try{localStorage.setItem(KEY+'.prev',JSON.stringify({at:new Date().toISOString(),data:S}))}catch(e){}
+    }
     normalizeLoaded(r.data.value);S.savedAt=cloudT;
     try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
     fillLists();renderAll();
     window.cloudQueue=cq;
-    cStat('Loaded from cloud · '+cWhen(cloudT),'on');toast('Cloud data loaded');
+    cStat('Loaded from cloud · '+cWhen(cloudT),'on');toast('Cloud data loaded');prevUI();
   },function(){cStat('Cloud read failed (offline?)','err')});
 }
+function prevGet(){try{return JSON.parse(localStorage.getItem(KEY+'.prev'))}catch(e){return null}}
+function prevUI(){var p=prevGet();$('#cl-prev').classList.toggle('hide',!p);if(p)$('#cl-prevAt').textContent='saved '+cWhen(p.at)}
+$('#cl-prevDl').addEventListener('click',function(){var p=prevGet();if(p)download('browser_data_before_cloud_'+stamp()+'.json',new Blob([JSON.stringify(p.data)],{type:'application/json'}))});
+$('#cl-prevRestore').addEventListener('click',function(){
+  var p=prevGet();if(!p)return;
+  if(!confirm('Replace the current data with the old browser data? (With auto-save on, it will also be saved to the cloud.)'))return;
+  normalizeLoaded(p.data);commit();try{localStorage.removeItem(KEY+'.prev')}catch(e){}prevUI();toast('Old browser data restored')});
+$('#cl-prevDrop').addEventListener('click',function(){try{localStorage.removeItem(KEY+'.prev')}catch(e){}prevUI()});
 $('#cl-in').addEventListener('click',function(){
   if(!sb){toast('Cloud not available (offline?)');return}
   var em=$('#cl-email').value.trim(),pw=$('#cl-pass').value;
@@ -1154,7 +1167,7 @@ $('#cl-auto').addEventListener('change',function(){
 S=load();
 if(!S||!S.types||!S.eq||!S.rows)S=freshState();
 S.eq.forEach(function(e){if(e.variant==null)e.variant=''});fixAbbr();upgradePlaceholders();fixAbbr();fixStages();applySizeDefaults();S.eq.forEach(function(e){var c=canonDisc(e.discipline);if(c)e.discipline=c});S.rows.forEach(function(r){var c=canonPlant(r.plant);if(c)r.plant=c});save();
-fillLists();renderAll();route();
+fillLists();renderAll();route();prevUI();
 </script>
 </body>
 </html>
