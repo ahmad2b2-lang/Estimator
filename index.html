@@ -108,7 +108,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
 <section id="home">
   <div class="hero">
     <h1>Engineering Project Hub</h1>
-    <p>Choose a module to open <span class="sm" style="float:right">Version 1 Nov 2026 · 14:25</span></p>
+    <p>Choose a module to open <span class="sm" style="float:right">Version 1 Nov 2026 · 14:50</span></p>
     <div class="note hide" id="cl-banner" style="margin-top:-8px">You're not signed in, so you're seeing only this browser's data. <a href="#" id="cl-goto">Sign in</a> to load and save the online data.</div>
   </div>
   <div class="grid">
@@ -442,7 +442,9 @@ function pu(e,c,st){var a=num(e.d[c]),b=num(e.d2&&e.d2[c]);return st===1?a:(st==
 function stName(st){return st===1?'Stage 1':(st===2?'Stage 2':'Stage 1 + Stage 2')}
 function segHTML(cur,opts){return'<div class="seg">'+opts.map(function(o){return'<button data-st="'+o[0]+'"'+(o[0]===cur?' class="on"':'')+'>'+o[1]+'</button>'}).join('')+'</div>'}
 var ST_ALL=[[0,'Total (S1 + S2)'],[1,'Stage 1'],[2,'Stage 2']],ST_EDIT=[[1,'Stage 1'],[2,'Stage 2']];
-function fixStages(){S.eq.forEach(function(e){if(!e.d2)e.d2=[];while(e.d2.length<e.d.length)e.d2.push(0);e.d2.length=e.d.length})}
+function whole(v){var n=num(v);return n>0?Math.ceil(n-1e-9):0}
+function fixStages(){S.eq.forEach(function(e){if(!e.d2)e.d2=[];while(e.d2.length<e.d.length)e.d2.push(0);e.d2.length=e.d.length;
+  e.d=e.d.map(whole);e.d2=e.d2.map(whole)})}
 function eqLabel(e){return e.name+(e.variant?' — '+e.variant:'')}
 function eqMap(){var m={};S.eq.forEach(function(e){m[e.id]=e});return m}
 function zeros(){return S.types.map(function(){return 0})}
@@ -599,7 +601,7 @@ $('#e-tbl').addEventListener('click',function(ev){
     commit();toast('Duplicated — now set the variant name');return}
   var td=ev.target.closest('td.ed');if(!td)return;
   var e2=S.eq[+td.parentNode.dataset.i];
-  if(td.dataset.c!==undefined){var c=+td.dataset.c,ar=E.st===2?'d2':'d';startEdit(td,'num',e2[ar][c],function(v){e2[ar][c]=v})}
+  if(td.dataset.c!==undefined){var c=+td.dataset.c,ar=E.st===2?'d2':'d';startEdit(td,'num',e2[ar][c],function(v){e2[ar][c]=whole(v)})}
   else if(td.dataset.f==='discipline')startEdit(td,'disc',e2.discipline,function(v){e2.discipline=v});
   else if(td.dataset.f==='variant')startEdit(td,'text',e2.variant,function(v){e2.variant=v});
   else startEdit(td,'text',e2.name,function(v){if(v)e2.name=v});
@@ -837,7 +839,7 @@ function importEq(m){
     var vr=iV>=0?sval(r[iV]):'';
     var e=S.eq.filter(function(x){return x.name.toLowerCase()===name.toLowerCase()&&x.discipline===disc&&x.variant.toLowerCase()===vr.toLowerCase()})[0];
     if(e)upd++;else{e={id:nid(),discipline:disc,name:name,variant:vr,d:zeros(),d2:zeros()};S.eq.push(e);add++}
-    tcols.forEach(function(c,j){e[cst[j]===2?'d2':'d'][cidx[j]]=num(r[c])});
+    tcols.forEach(function(c,j){e[cst[j]===2?'d2':'d'][cidx[j]]=whole(r[c])});
   });
   var bk=Object.keys(bad);
   commit();toast(add+' added, '+upd+' updated'+(bk.length?' · skipped invalid discipline: '+bk.join(', '):''));
