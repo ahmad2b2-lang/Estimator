@@ -108,7 +108,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
 <section id="home">
   <div class="hero">
     <h1>Engineering Project Hub</h1>
-    <p>Choose a module to open <span class="sm" style="float:right">Version 1 Nov 2026 · 14:50</span></p>
+    <p>Choose a module to open <span class="sm" style="float:right">Version 1 Nov 2026 · 15:15</span></p>
     <div class="note hide" id="cl-banner" style="margin-top:-8px">You're not signed in, so you're seeing only this browser's data. <a href="#" id="cl-goto">Sign in</a> to load and save the online data.</div>
   </div>
   <div class="grid">
@@ -814,6 +814,11 @@ function exportXlsx(name,sheet,m){
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(m),sheet);
   XLSX.writeFile(wb,name+'_'+stamp()+'.xlsx')}
 
+function exportXlsxSheets(name,sheets){
+  if(!window.XLSX){toast('Excel export needs internet once. Use CSV instead.');return}
+  var wb=XLSX.utils.book_new();sheets.forEach(function(s){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(s[1]),s[0])});
+  XLSX.writeFile(wb,name+'_'+stamp()+'.xlsx')}
+
 /* ---- equipment import/export ---- */
 function importEq(m){
   m=cleanMatrix(m);
@@ -893,12 +898,25 @@ function regMatrix(){
     var s1=a.reduce(function(x,y){return x+y},0),s2=b.reduce(function(x,y){return x+y},0);
     m.push([en?estName(en):'',r.plant,e?e.discipline:'',e?e.name:'',e?e.variant:'',q,fmt(s1),fmt(s2),fmt(s1+s2)].concat(a.map(fmt),b.map(fmt)))});
   return m}
+/* one sheet per stage: only the drawings of that stage, drawing types with no drawings in that stage left out */
+function regStageMatrix(st){
+  var M=eqMap(),xr=S.rows.filter(function(r){return inEst(r.plant,G.est)}),xa=allocRows(xr);
+  var key=st===1?'a':'b',cols=[];
+  S.types.forEach(function(_,c){if(xa.some(function(o){return o[key][c]>0}))cols.push(c)});
+  var m=[['Stage '+st+' — '+estName(G.est)+(G.est?' ('+estById(G.est).plants.join(', ')+')':'')],
+    ['Estimate','Plant','Discipline','Equipment','Variant','Quantity','Total dwgs (Stage '+st+')'].concat(cols.map(function(c){return(S.abbr[c]?S.abbr[c]+' – ':'')+S.types[c]}))];
+  var tot=cols.map(function(){return 0}),tq=0,tt=0;
+  xr.forEach(function(r,k){var e=M[r.eqId],q=num(r.quantity),en=estOfPlant(r.plant),a=xa[k][key];
+    var t=cols.reduce(function(s,c){return s+a[c]},0);tq+=q;tt+=t;cols.forEach(function(c,j){tot[j]+=a[c]});
+    m.push([en?estName(en):'',r.plant,e?e.discipline:'',e?e.name:'',e?e.variant:'',q,t].concat(cols.map(function(c){return a[c]||''})))});
+  m.push(['','','','Total','',tq,tt].concat(tot));
+  return m}
 $('#r-doPaste').addEventListener('click',function(){
   var t=$('#r-paste').value;if(!t.trim()){toast('Paste data first');return}
   importReg(parseDelim(t));$('#r-paste').value=''});
 $('#r-file').addEventListener('change',function(){readFileInto(this,importReg)});
 $('#r-exCsv').addEventListener('click',function(){exportCsv('drawings_register'+estFile(),regMatrix())});
-$('#r-exXlsx').addEventListener('click',function(){exportXlsx('drawings_register'+estFile(),'Register',regMatrix())});
+$('#r-exXlsx').addEventListener('click',function(){exportXlsxSheets('drawings_register'+estFile(),[['Stage 1',regStageMatrix(1)],['Stage 2',regStageMatrix(2)]])});
 $('#r-clear').addEventListener('click',function(){
   if(!confirm('Delete ALL register rows?'))return;S.rows=[];commit();toast('Register cleared')});
 
