@@ -108,7 +108,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
 <section id="home">
   <div class="hero">
     <h1>Engineering Project Hub</h1>
-    <p>Choose a module to open <span class="sm" style="float:right">Version 1 Nov 2026 · 14:05</span></p>
+    <p>Choose a module to open <span class="sm" style="float:right">Version 1 Nov 2026 · 14:25</span></p>
     <div class="note hide" id="cl-banner" style="margin-top:-8px">You're not signed in, so you're seeing only this browser's data. <a href="#" id="cl-goto">Sign in</a> to load and save the online data.</div>
   </div>
   <div class="grid">
@@ -937,7 +937,7 @@ function qtyMatrix(){
   S.types.forEach(function(t,c){
     if(Q.hide&&!perT[c])return;
     var f=S.factor[S.size[c]];
-    m.push([S.abbr[c],t,S.size[c]].concat(cols.map(function(z){return S.size[c]===z?fmt(perT[c]):0})).concat([f==null?'':fmt(perT[c]*f)]))});
+    m.push([S.abbr[c],t,S.size[c]].concat(cols.map(function(z){return S.size[c]===z?fmt(perT[c]):0})).concat([f==null?'':fmt(ceilQ(perT[c]*f))]))});
   return m}
 function renderQty(){
   var perT=perTypeQty(Q.d,Q.p,Q.st,G.est),cols=qtyCols();
@@ -954,7 +954,7 @@ function renderQty(){
     var f=S.factor[z0];
     if(!perT[c])h+='<td class="n tot z">·</td>';
     else if(f==null){noFac[z0]=1;h+='<td class="n tot warn">set factor</td>'}
-    else{totEq+=perT[c]*f;h+='<td class="n tot">'+fmt(perT[c]*f)+'</td>'}
+    else{totEq+=ceilQ(perT[c]*f);h+='<td class="n tot">'+fmt(ceilQ(perT[c]*f))+'</td>'}
     h+='</tr>'});
   if(!shown)h+='<tr><td class="empty" colspan="'+(cols.length+3)+'">'+(S.rows.length?'No drawings for the selected filters.':'No drawings yet — add rows in the Drawings Register Module.')+'</td></tr>';
   var g=0;cols.forEach(function(z){g+=tot[z]});
@@ -1054,17 +1054,18 @@ function equivA(st,est){
   var perT=perTypeQty('','',st||0,est),tot=0,miss={};
   perT.forEach(function(v,c){
     if(!v)return;var f=S.factor[S.size[c]];
-    if(f==null)miss[S.size[c]]=1;else tot+=v*f});
+    if(f==null)miss[S.size[c]]=1;else tot+=ceilQ(v*f)});
   return{tot:tot,miss:Object.keys(miss)}}
 function estCost(id){var a=equivA(1,id),b=equivA(2,id);return{s1:a.tot,s2:b.tot,tot:a.tot+b.tot,miss:a.miss.concat(b.miss)}}
 function renderCost(){
-  var hpd=num(S.cost.hpd),miss={},T={s1:0,s2:0,tot:0};
+  var hpd=num(S.cost.hpd),miss={},T={s1:0,s2:0,tot:0,h:0};
   var h='<thead><tr><th>Estimate</th><th>Plants</th><th style="text-align:right">Stage 1 equiv. A-size dwgs</th><th style="text-align:right">Stage 2 equiv. A-size dwgs</th><th style="text-align:right">Equivalent A-size dwgs</th><th style="text-align:right">Hours per Drawing</th><th style="text-align:right">Total Hours</th></tr></thead><tbody>';
   S.estimates.forEach(function(es){
     var c=estCost(es.id);c.miss.forEach(function(z){miss[z]=1});
     T.s1+=c.s1;T.s2+=c.s2;T.tot+=c.tot;
-    h+='<tr><td class="t"><b>'+esc(es.name)+'</b></td><td class="t">'+esc(es.plants.join(', ')||'—')+'</td><td class="n">'+fnum(c.s1)+'</td><td class="n">'+fnum(c.s2)+'</td><td class="n" style="font-weight:600">'+fnum(c.tot)+'</td><td class="n">'+fnum(hpd)+'</td><td class="n tot">'+fnum(c.tot*hpd)+'</td></tr>'});
-  h+='</tbody><tfoot><tr><td style="text-align:left">Total</td><td></td><td>'+fnum(T.s1)+'</td><td>'+fnum(T.s2)+'</td><td>'+fnum(T.tot)+'</td><td></td><td>'+fnum(T.tot*hpd)+'</td></tr></tfoot>';
+    h+='<tr><td class="t"><b>'+esc(es.name)+'</b></td><td class="t">'+esc(es.plants.join(', ')||'—')+'</td><td class="n">'+fnum(c.s1)+'</td><td class="n">'+fnum(c.s2)+'</td><td class="n" style="font-weight:600">'+fnum(c.tot)+'</td><td class="n">'+fnum(hpd)+'</td><td class="n tot">'+fnum(ceilQ(c.tot*hpd))+'</td></tr>';
+    T.h+=ceilQ(c.tot*hpd)});
+  h+='</tbody><tfoot><tr><td style="text-align:left">Total</td><td></td><td>'+fnum(T.s1)+'</td><td>'+fnum(T.s2)+'</td><td>'+fnum(T.tot)+'</td><td></td><td>'+fnum(T.h)+'</td></tr></tfoot>';
   $('#c-tbl').innerHTML=h;
   var e={miss:Object.keys(miss)};
   var inp=$('#c-hpd');
@@ -1078,7 +1079,7 @@ function renderHub(){
   $('#h-eq').textContent=S.eq.length+' equipment type'+(S.eq.length===1?'':'s')+' · '+S.types.length+' drawing types';
   var tq=0;S.estimates.forEach(function(es){tq+=sumA(perTypeQty('','',0,es.id))});
   $('#h-q').textContent=fmt(tq)+' drawings required';
-  $('#h-c').textContent=S.estimates.map(function(es){return es.name+': '+fnum(estCost(es.id).tot*num(S.cost.hpd))+' h'}).join(' · ');
+  $('#h-c').textContent=S.estimates.map(function(es){return es.name+': '+fnum(ceilQ(estCost(es.id).tot*num(S.cost.hpd)))+' h'}).join(' · ');
   $('#h-d').textContent=S.deliv.length+' deliverable'+(S.deliv.length===1?'':'s');
   $('#h-reg').textContent=S.rows.length+' register row'+(S.rows.length===1?'':'s');
 }
