@@ -108,7 +108,7 @@ td.empty{padding:18px;text-align:center;color:var(--mute);white-space:normal}
 <section id="home">
   <div class="hero">
     <h1>Engineering Project Hub</h1>
-    <p>Choose a module to open <span class="sm" style="float:right">Version 29 Oct 2026 · 16:20</span></p>
+    <p>Choose a module to open <span class="sm" style="float:right">Version 1 Nov 2026 · 13:30</span></p>
     <div class="note hide" id="cl-banner" style="margin-top:-8px">You're not signed in, so you're seeing only this browser's data. <a href="#" id="cl-goto">Sign in</a> to load and save the online data.</div>
   </div>
   <div class="grid">
@@ -700,7 +700,10 @@ function renderReg(){
       '<td class="n tot">'+fmt(t)+'</td>'+cells+
       '<td class="x"><button data-del="'+i+'" title="Delete row">✕</button></td></tr>';
   });
-  h+='</tbody><tfoot><tr><td></td><td></td><td class="sticky">Totals</td><td></td><td></td><td>'+fmt(qT)+'</td><td>'+fmt(g1)+'</td><td>'+fmt(g2)+'</td><td>'+fmt(gT)+'</td>';
+  var shownRows=idx.map(function(i){return S.rows[i]});
+  colT=qtyFrom(shownRows,R.st);colT=cols.map(function(c){return colT[c]});
+  g1=sumA(qtyFrom(shownRows,1));g2=sumA(qtyFrom(shownRows,2));gT=g1+g2;
+  h+='</tbody><tfoot><tr><td></td><td></td><td class="sticky">Totals (whole drawings)</td><td></td><td></td><td>'+fmt(qT)+'</td><td>'+fmt(g1)+'</td><td>'+fmt(g2)+'</td><td>'+fmt(gT)+'</td>';
   colT.forEach(function(v){h+='<td>'+fmt(v)+'</td>'});
   h+='<td></td></tr></tfoot>';
   $('#r-tbl').innerHTML=h;
@@ -734,16 +737,15 @@ $('#qaAdd').addEventListener('click',function(){
 
 /* ---- summary ---- */
 function renderSummary(){
-  var M=eqMap(),total=0,units=0,perT=zeros(),byD={},byP={},byE={};
-  S.rows.forEach(function(r){
-    var e=M[r.eqId];if(!e)return;
-    if(!inEst(r.plant,G.est))return;
-    var q=num(r.quantity),rt=0;units+=q;
-    S.types.forEach(function(_,c){var x=pu(e,c,R.st)*q;perT[c]+=x;rt+=x});
-    total+=rt;
-    function add(o,k){(o[k]=o[k]||{q:0,t:0});o[k].q+=q;o[k].t+=rt}
-    add(byD,e.discipline||'(none)');add(byP,r.plant||'(none)');add(byE,eqLabel(e));
+  var M=eqMap(),units=0,byD={},byP={},byE={},grp={dD:{},dP:{},dE:{}};
+  var inRows=S.rows.filter(function(r){return M[r.eqId]&&inEst(r.plant,G.est)});
+  var perT=qtyFrom(inRows,R.st),total=sumA(perT);
+  inRows.forEach(function(r){
+    var e=M[r.eqId],q=num(r.quantity);units+=q;
+    function add(o,g,k){(o[k]=o[k]||{q:0,t:0});o[k].q+=q;(grp[g][k]=grp[g][k]||[]).push(r)}
+    add(byD,'dD',e.discipline||'(none)');add(byP,'dP',r.plant||'(none)');add(byE,'dE',eqLabel(e));
   });
+  [[byD,'dD'],[byP,'dP'],[byE,'dE']].forEach(function(x){Object.keys(x[0]).forEach(function(k){x[0][k].t=sumA(qtyFrom(grp[x[1]][k],R.st))})});
   var bySize={A:0,B:0,C:0,D:0,E:0};perT.forEach(function(v,c){bySize[S.size[c]]+=v});
   $('#byS').innerHTML='<tr><th>Size</th><th>Types</th><th>Drawings</th></tr>'+SIZES.map(function(z){return'<tr><td>Size '+z+'</td><td>'+S.size.filter(function(x){return x===z}).length+'</td><td><b>'+fmt(bySize[z])+'</b></td></tr>'}).join('');
   var used=perT.filter(function(v){return v>0}).length;
@@ -898,16 +900,23 @@ $('#r-clear').addEventListener('click',function(){
 
 /* ================= Drawing Quantities Module ================= */
 var Q={d:'',p:'',hide:true,st:0};
+/* Whole drawings: shared (fractional) per-unit quantities are added up first, then each drawing type is
+   rounded UP to whole drawings, separately for Stage 1 and Stage 2. */
+function ceilQ(v){return Math.ceil(v-1e-9)}
+function qtyFrom(rows,st){
+  var M=eqMap(),a=zeros(),b=zeros();
+  rows.forEach(function(r){var e=M[r.eqId];if(!e)return;var q=num(r.quantity);
+    S.types.forEach(function(_,c){a[c]+=pu(e,c,1)*q;b[c]+=pu(e,c,2)*q})});
+  return a.map(function(v,c){return st===1?ceilQ(v):(st===2?ceilQ(b[c]):ceilQ(v)+ceilQ(b[c]))})}
+function sumA(a){return a.reduce(function(x,y){return x+y},0)}
 function perTypeQty(d,p,st,est){
-  var M=eqMap(),perT=zeros();
-  S.rows.forEach(function(r){
-    var e=M[r.eqId];if(!e)return;
-    if(d&&e.discipline!==d)return;
-    if(p&&r.plant!==p)return;
-    if(est&&!inEst(r.plant,est))return;
-    var q=num(r.quantity);
-    S.types.forEach(function(_,c){perT[c]+=pu(e,c,st||0)*q})});
-  return perT}
+  var M=eqMap(),rows=S.rows.filter(function(r){
+    var e=M[r.eqId];if(!e)return false;
+    if(d&&e.discipline!==d)return false;
+    if(p&&r.plant!==p)return false;
+    if(est&&!inEst(r.plant,est))return false;
+    return true});
+  return qtyFrom(rows,st||0)}
 function qtyCols(){return SIZES.filter(function(z){return z!=='C'||S.size.indexOf('C')>=0})}
 function qtyMatrix(){
   var perT=perTypeQty(Q.d,Q.p,Q.st,G.est),cols=qtyCols();
@@ -1054,7 +1063,7 @@ $('#c-hpd').addEventListener('input',function(){S.cost.hpd=num(this.value);save(
 /* ================= hub ================= */
 function renderHub(){
   $('#h-eq').textContent=S.eq.length+' equipment type'+(S.eq.length===1?'':'s')+' · '+S.types.length+' drawing types';
-  var tq=0;perTypeQty('','').forEach(function(v){tq+=v});
+  var tq=0;S.estimates.forEach(function(es){tq+=sumA(perTypeQty('','',0,es.id))});
   $('#h-q').textContent=fmt(tq)+' drawings required';
   $('#h-c').textContent=S.estimates.map(function(es){return es.name+': '+fnum(estCost(es.id).tot*num(S.cost.hpd))+' h'}).join(' · ');
   $('#h-d').textContent=S.deliv.length+' deliverable'+(S.deliv.length===1?'':'s');
